@@ -174,6 +174,36 @@ function Relatorios() {
 
   return (
     <>
+      <div className="stats-grid" style={{ marginBottom: '20px' }}>
+        <div className="card stat-card">
+          <div className="stat-icon bg-green-light">
+            <i className="fas fa-hand-holding-usd"></i>
+          </div>
+          <div className="stat-info">
+            <h3>Receita Líquida</h3>
+            <p>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.totalPago)}</p>
+          </div>
+        </div>
+        <div className="card stat-card">
+          <div className="stat-icon bg-blue-light">
+            <i className="fas fa-shopping-cart"></i>
+          </div>
+          <div className="stat-info">
+            <h3>Itens Vendidos</h3>
+            <p>{stats.totalVendas} un</p>
+          </div>
+        </div>
+        <div className="card stat-card">
+          <div className="stat-icon bg-purple-light">
+            <i className="fas fa-chart-line"></i>
+          </div>
+          <div className="stat-info">
+            <h3>Ticket Médio</h3>
+            <p>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.mediaVenda)}</p>
+          </div>
+        </div>
+      </div>
+
       <div className="filters-bar">
         <div className="filter-group">
           <input
@@ -359,6 +389,34 @@ function Relatorios() {
                 </tbody>
               </table>
             </div>
+
+            {selectedVenda.servicos && selectedVenda.servicos.length > 0 && (
+              <>
+                <h4 style={{ marginBottom: '10px' }}>Serviços Prestados</h4>
+                <div className="table-container" style={{ maxHeight: '150px', overflowY: 'auto', marginBottom: '20px', border: '1px solid #e2e8f0' }}>
+                  <table style={{ fontSize: '0.9rem' }}>
+                    <thead>
+                      <tr>
+                        <th>Serviço</th>
+                        <th>Qtd</th>
+                        <th>Valor Cobrado</th>
+                        <th>Subtotal</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedVenda.servicos.map((s, idx) => (
+                        <tr key={idx}>
+                          <td>{s.servico?.nome}</td>
+                          <td>{s.quantidade}</td>
+                          <td>{formatCurrency(s.valor_cobrado)}</td>
+                          <td>{formatCurrency(s.valor_cobrado * s.quantidade)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
 
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: '20px' }}>
               <div style={{ flex: 1 }}>

@@ -20,6 +20,13 @@ type itemInput struct {
 	CodLote   string
 }
 
+// servicoInput representa um serviço a ser incluído na venda.
+type servicoInput struct {
+	ServicoID    uint
+	ValorCobrado float64
+	Quantidade   int
+}
+
 // pagamentoInput representa uma forma de pagamento registrada na venda.
 type pagamentoInput struct {
 	Tipo  string
@@ -82,12 +89,13 @@ func (s *Service) preencherValorPago(v *Venda) {
 func (s *Service) CriarVenda(
 	nomeCliente, empresa, documentoCliente, telefoneCliente, observacoes string,
 	itens []itemInput,
+	servicos []servicoInput,
 	pagamentos []pagamentoInput,
 	usuarioID uint,
 	trocoDevolvido float64,
 ) (*Venda, error) {
-	if len(itens) == 0 {
-		return nil, errors.New("a venda deve conter ao menos um item")
+	if len(itens) == 0 && len(servicos) == 0 {
+		return nil, errors.New("a venda deve conter ao menos um item ou serviço")
 	}
 
 	var vendaCriada *Venda
@@ -145,6 +153,18 @@ func (s *Service) CriarVenda(
 			produtosEnvolvidos[input.ProdutoID] = true
 		}
 
+		// 2.5 Processar serviços
+		for _, sInput := range servicos {
+			its := &ItemServicoVenda{
+				VendaID:      novaVenda.ID,
+				ServicoID:    sInput.ServicoID,
+				ValorCobrado: sInput.ValorCobrado,
+				Quantidade:   sInput.Quantidade,
+			}
+			if err := tx.Create(its).Error; err != nil { return err }
+			valorTotal += (sInput.ValorCobrado * float64(sInput.Quantidade))
+		}
+
 		// 3. Processar pagamentos
 		for _, pgInput := range pagamentos {
 			pg := &Pagamento{
@@ -177,13 +197,14 @@ func (s *Service) AtualizarVenda(
 	vendaID uint,
 	nomeCliente, empresa, documentoCliente, telefoneCliente, observacoes string,
 	itens []itemInput,
+	servicos []servicoInput,
 	pagamentos []pagamentoInput,
 	usuarioID uint,
 	trocoDevolvido float64,
 ) (*Venda, error) {
 	err := s.repo.DB().Transaction(func(tx *gorm.DB) error {
 		var v Venda
-		if err := tx.Preload("Itens.ItemEstoque").First(&v, vendaID).Error; err != nil {
+		if err := tx.Preload("Itens.ItemEstoque").Preload("Servicos").First(&v, vendaID).Error; err != nil {
 			return errors.New("venda não encontrada")
 		}
 
@@ -205,9 +226,10 @@ func (s *Service) AtualizarVenda(
 
 		// 2. Limpar tabelas associativas
 		tx.Where("venda_id = ?", vendaID).Delete(&ItemVenda{})
+		tx.Where("venda_id = ?", vendaID).Delete(&ItemServicoVenda{})
 		tx.Where("venda_id = ?", vendaID).Delete(&Pagamento{})
 
-		// 3. Reservar novos itens
+		// 3. Reservar novos itens e calcular valor total
 		var novoValorTotal float64
 		for _, input := range itens {
 			p, err := s.produtoRepo.BuscarPorID(input.ProdutoID)
@@ -237,6 +259,19 @@ func (s *Service) AtualizarVenda(
 			novoValorTotal += vlr
 		}
 
+		// 3.5. Salvar novos serviços
+		for _, sInput := range servicos {
+			if err := tx.Create(&ItemServicoVenda{
+				VendaID:      vendaID,
+				ServicoID:    sInput.ServicoID,
+				ValorCobrado: sInput.ValorCobrado,
+				Quantidade:   sInput.Quantidade,
+			}).Error; err != nil {
+				return err
+			}
+			novoValorTotal += (sInput.ValorCobrado * float64(sInput.Quantidade))
+		}
+
 		// 4. Salvar novos pagamentos
 		for _, pg := range pagamentos {
 			tx.Create(&Pagamento{VendaID: vendaID, Tipo: pg.Tipo, Valor: pg.Valor})
@@ -246,6 +281,7 @@ func (s *Service) AtualizarVenda(
 		v.NomeCliente, v.Empresa, v.DocumentoCliente, v.TelefoneCliente = nomeCliente, empresa, documentoCliente, telefoneCliente
 		v.Observacoes, v.ValorTotal, v.TrocoDevolvido = observacoes, novoValorTotal, trocoDevolvido
 		v.Itens = nil // Evita re-associação indevida no Save
+		v.Servicos = nil // Evita re-associação indevida no Save
 		tx.Save(&v)
 
 		// 6. Sincronização Física Final

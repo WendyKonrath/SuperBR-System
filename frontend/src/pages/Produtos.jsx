@@ -163,8 +163,28 @@ function Produtos() {
     )
   }
 
+  const statsProdutos = [
+    { icon: 'fa-tag', bgClass: 'bg-blue-light', title: 'Modelos Ativos', value: produtos.length },
+    { icon: 'fa-boxes-stacked', bgClass: 'bg-green-light', title: 'Total em Estoque', value: `${estoques.reduce((acc, e) => acc + e.qtd_atual, 0)} un` },
+    { icon: 'fa-triangle-exclamation', bgClass: 'bg-red-light', title: 'Estoque Baixo', value: estoques.filter(e => e.qtd_atual < 3).length },
+  ]
+
   return (
     <>
+      <div className="stats-grid" style={{ marginBottom: '20px' }}>
+        {statsProdutos.map((stat, index) => (
+          <div key={index} className="card stat-card">
+            <div className={`stat-icon ${stat.bgClass}`}>
+              <i className={`fas ${stat.icon}`}></i>
+            </div>
+            <div className="stat-info">
+              <h3>{stat.title}</h3>
+              <p>{stat.value}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
       <div className="filters-bar">
         <div className="filter-group">
           <input

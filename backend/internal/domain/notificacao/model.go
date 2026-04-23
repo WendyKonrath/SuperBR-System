@@ -16,6 +16,7 @@ const (
 	TipoSaidaEstoque   = "saida_estoque"
 	TipoVendaRealizada = "venda_realizada"
 	TipoRelatorioGerado = "relatorio_gerado"
+	TipoServicoModificado = "servico_modificado"
 )
 
 // Notificacao representa um alerta gerado pelo sistema para um usuário.

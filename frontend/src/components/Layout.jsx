@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import {
   FaChartLine, FaBoxes, FaRecycle, FaShoppingCart,
   FaFileInvoiceDollar, FaBell, FaSignOutAlt,
-  FaUsers, FaBoxOpen, FaExchangeAlt, FaCogs
+  FaUsers, FaBoxOpen, FaExchangeAlt, FaCogs, FaWrench
 } from 'react-icons/fa'
 import { useAuth } from '../context/AuthContext'
 import { notificacaoService } from '../services/notificacao'
@@ -77,6 +77,11 @@ function Layout({ children }) {
           <li>
             <NavLink to="/produtos" className={({ isActive }) => isActive ? 'active' : ''}>
               <FaBoxOpen /> Produtos
+            </NavLink>
+          </li>
+          <li>
+            <NavLink to="/servicos" className={({ isActive }) => isActive ? 'active' : ''}>
+              <FaWrench /> Serviços
             </NavLink>
           </li>
           {hasAccess(['admin', 'gerente', 'financeiro', 'vendas']) && (

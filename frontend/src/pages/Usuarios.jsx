@@ -104,6 +104,12 @@ function Usuarios() {
     }
   }
 
+  const statsUsuarios = [
+    { icon: 'fa-users', bgClass: 'bg-blue-light', title: 'Total de Usuários', value: usuarios.length },
+    { icon: 'fa-user-check', bgClass: 'bg-green-light', title: 'Usuários Ativos', value: usuarios.filter(u => u.ativo).length },
+    { icon: 'fa-user-clock', bgClass: 'bg-yellow-light', title: '1º Acesso Pendente', value: usuarios.filter(u => u.primeiro_acesso).length },
+  ]
+
   if (loading) {
     return (
       <div className="loading-container">
@@ -124,6 +130,20 @@ function Usuarios() {
 
   return (
     <>
+      <div className="stats-grid" style={{ marginBottom: '20px' }}>
+        {statsUsuarios.map((stat, index) => (
+          <div key={index} className="card stat-card">
+            <div className={`stat-icon ${stat.bgClass}`}>
+              <i className={`fas ${stat.icon}`}></i>
+            </div>
+            <div className="stat-info">
+              <h3>{stat.title}</h3>
+              <p>{stat.value}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
       <div className="filters-bar">
         <div className="filter-group">
           <button type="button" className="btn btn-success" onClick={() => handleOpenModal('add')}>
@@ -166,9 +186,9 @@ function Usuarios() {
                   </td>
                   <td>
                     {user.primeiro_acesso ? (
-                      <span className="badge" style={{ backgroundColor: '#f39c12', color: '#fff' }}>1º Login Pendente</span>
+                      <span className="badge badge-warning">1º Login Pendente</span>
                     ) : (
-                      <span className="badge" style={{ backgroundColor: '#3498db', color: '#fff' }}>Senha Definida</span>
+                      <span className="badge badge-success" style={{ backgroundColor: '#3b82f6' }}>Senha Definida</span>
                     )}
                   </td>
                   <td>

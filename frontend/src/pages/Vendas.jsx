@@ -3,6 +3,7 @@ import { FaPlus, FaTrash, FaEye, FaCheck, FaTimes, FaFilePdf, FaEdit } from 'rea
 import { vendaService } from '../services/venda'
 import { produtoService } from '../services/produto'
 import { estoqueService } from '../services/estoque'
+import { servicoService } from '../services/servico'
 
 import { useAuth } from '../context/AuthContext'
 
@@ -13,9 +14,11 @@ function Vendas() {
   const [produtos, setProdutos] = useState([])
   const [estoques, setEstoques] = useState([])
   const [itensEstoque, setItensEstoque] = useState([])
+  const [servicosDisponiveis, setServicosDisponiveis] = useState([])
   const [showModal, setShowModal] = useState(false)
-  const [showProductModal, setShowProductModal] = useState(false)
   const [showListModal, setShowListModal] = useState(false)
+  const [showServicoModal, setShowServicoModal] = useState(false)
+  const [showProductModal, setShowProductModal] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState(null)
   const [quantity, setQuantity] = useState(1)
   const [search, setSearch] = useState('')
@@ -36,6 +39,7 @@ function Vendas() {
     troco_devolvido: '0,00'
   })
   const [itens, setItens] = useState([])
+  const [servicosVenda, setServicosVenda] = useState([])
   const { usuario } = useAuth()
 
   // Comentado para evitar que o troco seja preenchido automaticamente, conforme pedido do usuário.
@@ -69,16 +73,18 @@ function Vendas() {
     setLoading(true)
     setError(null)
     try {
-      const [vendasData, produtosData, estoquesData, itensEstoqueData] = await Promise.all([
+      const [vendasData, produtosData, estoquesData, itensEstoqueData, servicosData] = await Promise.all([
         vendaService.listar(),
         produtoService.listar(),
         estoqueService.listarEstoque(),
-        estoqueService.listarItens()
+        estoqueService.listarItens(),
+        servicoService.listar()
       ])
       setVendas(Array.isArray(vendasData) ? vendasData : [])
       setProdutos(Array.isArray(produtosData) ? produtosData : [])
       setEstoques(Array.isArray(estoquesData) ? estoquesData : [])
       setItensEstoque(Array.isArray(itensEstoqueData) ? itensEstoqueData : [])
+      setServicosDisponiveis(Array.isArray(servicosData?.data) ? servicosData.data : Array.isArray(servicosData) ? servicosData : [])
     } catch (err) {
       console.error('Erro ao carregar dados:', err)
       setError('Erro ao carregar dados')
@@ -116,7 +122,9 @@ function Vendas() {
   }
 
   const calcularTotal = () => {
-    return itens.reduce((acc, item) => acc + (item.quantidade * item.valor_unitario), 0)
+    const totalItens = itens.reduce((acc, item) => acc + (item.quantidade * item.valor_unitario), 0)
+    const totalServicos = servicosVenda.reduce((acc, serv) => acc + (serv.quantidade * serv.valor_cobrado), 0)
+    return totalItens + totalServicos
   }
 
   const handleOpenProductModal = (product) => {
@@ -198,6 +206,23 @@ function Vendas() {
     }
   }
 
+  const handleAddServicoToCart = (servico) => {
+    const existingIndex = servicosVenda.findIndex(s => s.servico_id === servico.id)
+    if (existingIndex >= 0) {
+      const updatedServicos = [...servicosVenda]
+      updatedServicos[existingIndex].quantidade += 1
+      setServicosVenda(updatedServicos)
+    } else {
+      setServicosVenda([...servicosVenda, {
+        id: Date.now(),
+        servico_id: servico.id,
+        nome: `[Serviço] ${servico.nome}`,
+        quantidade: 1,
+        valor_cobrado: servico.valor
+      }])
+    }
+  }
+
   const filteredVendas = vendas.filter(venda => {
     if (filters.status && venda.status !== filters.status) return false
 
@@ -225,6 +250,41 @@ function Vendas() {
     return true
   })
 
+  const statsVendas = [
+    { 
+      icon: 'fa-shopping-cart', 
+      bgClass: 'bg-blue-light', 
+      title: 'Total de Vendas', 
+      value: filteredVendas.length,
+      subtitle: 'No período selecionado'
+    },
+    { 
+      icon: 'fa-money-bill-trend-up', 
+      bgClass: 'bg-green-light', 
+      title: 'Faturamento Bruto', 
+      value: formatCurrency(filteredVendas.filter(v => v.status === 'concluida').reduce((acc, v) => acc + v.valor_total, 0)),
+      subtitle: 'Vendas concluídas'
+    },
+    { 
+      icon: 'fa-clock', 
+      bgClass: 'bg-yellow-light', 
+      title: 'Vendas Pendentes', 
+      value: filteredVendas.filter(v => v.status === 'pendente').length,
+      subtitle: 'Aguardando confirmação'
+    },
+    { 
+      icon: 'fa-chart-line', 
+      bgClass: 'bg-purple-light', 
+      title: 'Ticket Médio', 
+      value: formatCurrency(
+        filteredVendas.filter(v => v.status === 'concluida').length > 0 
+          ? filteredVendas.filter(v => v.status === 'concluida').reduce((acc, v) => acc + v.valor_total, 0) / filteredVendas.filter(v => v.status === 'concluida').length 
+          : 0
+      ),
+      subtitle: 'Valor médio por venda'
+    },
+  ]
+
   const handleChangeCartQuantity = (itemId, newQty) => {
     setItens(itens.map(item => {
       if (item.id === itemId) {
@@ -239,6 +299,21 @@ function Vendas() {
 
   const handleRemoveItem = (id) => {
     setItens(itens.filter(i => i.id !== id))
+  }
+
+  const handleChangeServicoQuantity = (id, newQty) => {
+    setServicosVenda(servicosVenda.map(s => {
+      if (s.id === id) {
+        let validQty = parseInt(newQty) || 1;
+        if (validQty < 1) validQty = 1;
+        return { ...s, quantidade: validQty }
+      }
+      return s;
+    }))
+  }
+
+  const handleRemoveServico = (id) => {
+    setServicosVenda(servicosVenda.filter(s => s.id !== id))
   }
 
   const handlePriceTableChange = (novoTipo) => {
@@ -276,6 +351,7 @@ function Vendas() {
     setEditingVendaId(null)
     setCurrentVenda(null)
     setItens([])
+    setServicosVenda([])
     setFormData({
       cliente: '',
       documento: '',
@@ -367,6 +443,20 @@ function Vendas() {
     }
     setItens(groupedItens)
 
+    const mappedServicos = []
+    if (vendaDetalhes.servicos) {
+      vendaDetalhes.servicos.forEach(s => {
+        mappedServicos.push({
+          id: `serv-${s.id}-${Date.now()}`,
+          servico_id: s.servico_id,
+          nome: `[Serviço] ${s.servico?.nome || 'Serviço'}`,
+          quantidade: s.quantidade,
+          valor_cobrado: s.valor_cobrado
+        })
+      })
+    }
+    setServicosVenda(mappedServicos)
+
     const pgs = { dinheiro: 0, pix: 0, credito: 0, debito: 0, sucata: 0 }
     if (vendaDetalhes.pagamentos) {
       vendaDetalhes.pagamentos.forEach(p => {
@@ -375,14 +465,21 @@ function Vendas() {
         }
       })
     }
-    setFormData(prev => ({
-      ...prev,
+    setFormData({
+      cliente: vendaDetalhes.nome_cliente || '',
+      empresa: vendaDetalhes.empresa || '',
+      documento: vendaDetalhes.documento_cliente || '',
+      telefone: vendaDetalhes.telefone_cliente || '',
+      observacoes: vendaDetalhes.observacoes || '',
+      troco_devolvido: (vendaDetalhes.troco_devolvido || 0).toString().replace('.', ','),
+      tipoPreco: 'varejo',
       dinheiro: pgs.dinheiro > 0 ? (pgs.dinheiro).toString().replace('.', ',') : '',
       pix: pgs.pix > 0 ? (pgs.pix).toString().replace('.', ',') : '',
       credito: pgs.credito > 0 ? (pgs.credito).toString().replace('.', ',') : '',
       debito: pgs.debito > 0 ? (pgs.debito).toString().replace('.', ',') : '',
-      sucata: pgs.sucata > 0 ? (pgs.sucata).toString().replace('.', ',') : ''
-    }))
+      sucata: pgs.sucata > 0 ? (pgs.sucata).toString().replace('.', ',') : '',
+      data: vendaDetalhes.data ? new Date(vendaDetalhes.data).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
+    })
 
     setCurrentVenda(null)
     setShowModal(true)
@@ -405,6 +502,7 @@ function Vendas() {
       troco_devolvido: '0,00'
     })
     setItens([])
+    setServicosVenda([])
   }
 
   const handleVisualizarVenda = (venda) => {
@@ -441,8 +539,13 @@ function Vendas() {
   const handleSubmitVenda = async (e) => {
     e.preventDefault()
 
-    if (!formData.cliente || itens.length === 0) {
-      alert('Informe o nome do cliente e adicione ao menos um item')
+    if (!formData.cliente || !formData.cliente.trim()) {
+      alert('Informe o nome do cliente antes de finalizar a venda.')
+      return
+    }
+
+    if (itens.length === 0 && servicosVenda.length === 0) {
+      alert('A venda deve conter ao menos um item físico ou um serviço.')
       return
     }
 
@@ -465,6 +568,11 @@ function Vendas() {
           }
           return acc;
         }, []),
+        servicos: servicosVenda.map(s => ({
+          servico_id: s.servico_id,
+          valor_cobrado: typeof s.valor_cobrado === 'string' ? parseCurrency(s.valor_cobrado) : s.valor_cobrado,
+          quantidade: s.quantidade
+        })),
         pagamentos: Object.entries(formData)
           .filter(([k, v]) => ['dinheiro', 'pix', 'credito', 'debito', 'sucata'].includes(k) && v !== '' && parseCurrency(v) > 0)
           .map(([k, v]) => ({
@@ -472,6 +580,8 @@ function Vendas() {
             valor: parseCurrency(v)
           }))
       };
+
+      console.log("ENVIANDO PAYLOAD:", payload)
 
       if (editingVendaId) {
         await vendaService.atualizar(editingVendaId, payload)
@@ -482,6 +592,7 @@ function Vendas() {
 
       setShowModal(false)
       setItens([])
+      setServicosVenda([])
       setFormData({ cliente: '', documento: '', telefone: '', observacoes: '', data: new Date().toISOString().split('T')[0], tipoPreco: 'varejo', dinheiro: '', pix: '', credito: '', debito: '', sucata: '', troco_devolvido: '0,00' })
       loadData()
     } catch (err) {
@@ -538,6 +649,21 @@ function Vendas() {
 
   return (
     <>
+      <div className="stats-grid" style={{ marginBottom: '20px' }}>
+        {statsVendas.map((stat, index) => (
+          <div key={index} className="card stat-card">
+            <div className={`stat-icon ${stat.bgClass}`}>
+              <i className={`fas ${stat.icon}`}></i>
+            </div>
+            <div className="stat-info">
+              <h3>{stat.title}</h3>
+              <p>{stat.value}</p>
+              <small style={{ color: '#64748b' }}>{stat.subtitle}</small>
+            </div>
+          </div>
+        ))}
+      </div>
+
       <div className="filters-bar">
         <div className="filter-group">
           <div className="select-wrapper">
@@ -627,7 +753,7 @@ function Vendas() {
                     </span>
                   </td>
                   <td>
-                    <div style={{ display: 'flex', gap: '6px' }}>
+                    <div style={{ display: 'flex', gap: '8px' }}>
                       <button
                         type="button"
                         className={`action-btn ${venda.status === 'pendente' && canManage ? 'action-btn-edit' : 'action-btn-view'}`}
@@ -641,6 +767,7 @@ function Vendas() {
                           <button
                             type="button"
                             className="action-btn action-btn-edit"
+                            style={{ backgroundColor: '#10b981' }}
                             onClick={(e) => { e.stopPropagation(); handleConfirmarVenda(venda); }}
                             title="Confirmar Venda"
                           >
@@ -790,9 +917,40 @@ function Vendas() {
                           );
                         });
                       })()
-                    ) : (
+                    ) : null}
+
+                    {currentVenda.servicos && currentVenda.servicos.length > 0 && (
+                      currentVenda.servicos.map((s, idx) => (
+                        <div key={`serv-${idx}`} className="product-item" style={{ 
+                          display: 'flex', 
+                          flexDirection: 'column', 
+                          padding: '12px 15px', 
+                          background: currentVenda.status === 'reembolsado' ? '#f1f5f9' : '#f8fafc', 
+                          border: '1px solid #e2e8f0', 
+                          borderRadius: '6px',
+                          opacity: currentVenda.status === 'reembolsado' ? 0.7 : 1
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <div style={{ 
+                              flex: '2', 
+                              fontWeight: '600', 
+                              color: currentVenda.status === 'reembolsado' ? '#94a3b8' : '#1e293b', 
+                              fontSize: '0.95rem',
+                              textDecoration: currentVenda.status === 'reembolsado' ? 'line-through' : 'none'
+                            }}>
+                              [Serviço] {s.servico?.nome || 'Serviço'}
+                            </div>
+                            <div style={{ flex: '1', textAlign: 'center', color: '#475569', fontSize: '0.9rem' }}><span style={{ background: '#e2e8f0', padding: '4px 8px', borderRadius: '4px' }}>x{s.quantidade}</span></div>
+                            <div style={{ flex: '1', textAlign: 'right', color: '#475569', fontSize: '0.9rem' }}>{formatCurrency(s.valor_cobrado)}/un</div>
+                            <div style={{ flex: '1.2', textAlign: 'right', fontWeight: 'bold', color: currentVenda.status === 'reembolsado' ? '#94a3b8' : '#0f172a', fontSize: '1rem' }}>{formatCurrency(s.quantidade * s.valor_cobrado)}</div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                    
+                    {(!currentVenda.itens || currentVenda.itens.length === 0) && (!currentVenda.servicos || currentVenda.servicos.length === 0) && (
                       <div style={{ textAlign: 'center', color: '#a1a1aa', padding: '20px 0', fontSize: '0.95rem' }}>
-                        <p style={{ margin: 0, fontStyle: 'italic' }}>Nenhum item listado</p>
+                        <p style={{ margin: 0, fontStyle: 'italic' }}>Nenhum item ou serviço listado</p>
                       </div>
                     )}
                   </div>
@@ -933,37 +1091,69 @@ function Vendas() {
                     </div>
                   </div>
                   <div className="products-list" style={{ background: 'white', borderRadius: '6px', border: '1px dashed #cbd5e1', padding: '15px', minHeight: '90px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    {itens.length === 0 ? (
+                    {itens.map((item) => (
+                      <div key={item.id} className="product-item" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 15px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '6px', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
+                        <div style={{ flex: '2', fontWeight: '600', color: '#1e293b', fontSize: '0.95rem' }}>{item.nome}</div>
+                        <div style={{ flex: '1', textAlign: 'center' }}>
+                          <input 
+                            type="number" 
+                            min="1" 
+                            max={item.maxStock} 
+                            value={item.quantidade} 
+                            onChange={(e) => handleChangeCartQuantity(item.id, e.target.value)} 
+                            style={{ width: '60px', padding: '4px', textAlign: 'center', border: '1px solid #cbd5e1', borderRadius: '4px', background: '#f8fafc' }} 
+                          />
+                          <div style={{fontSize: '0.7rem', color: '#64748b', marginTop: '2px'}}>Máx: {item.maxStock}</div>
+                        </div>
+                        <div style={{ flex: '1', textAlign: 'right', color: '#475569', fontSize: '0.9rem' }}>{formatCurrency(item.valor_unitario)}/un</div>
+                        <div style={{ flex: '1.2', textAlign: 'right', fontWeight: 'bold', color: '#0f172a', fontSize: '1rem' }}>{formatCurrency(item.quantidade * item.valor_unitario)}</div>
+                        <div style={{ marginLeft: '15px' }}>
+                          <button type="button" className="btn-remove" style={{ background: '#fff0f2', color: '#e11d48', border: '1px solid #ffe4e6', padding: '6px 10px', borderRadius: '4px', cursor: 'pointer', transition: 'all 0.2s' }} onClick={() => handleRemoveItem(item.id)} title="Remover Produto"><FaTrash /></button>
+                        </div>
+                      </div>
+                    ))}
+                    {servicosVenda.map((serv) => (
+                      <div key={serv.id} className="product-item" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 15px', background: '#fdf8f6', border: '1px solid #fed7aa', borderRadius: '6px', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
+                        <div style={{ flex: '2', fontWeight: '600', color: '#9a3412', fontSize: '0.95rem' }}>{serv.nome}</div>
+                        <div style={{ flex: '1', textAlign: 'center' }}>
+                          <input 
+                            type="number" 
+                            min="1" 
+                            value={serv.quantidade} 
+                            onChange={(e) => handleChangeServicoQuantity(serv.id, e.target.value)} 
+                            style={{ width: '60px', padding: '4px', textAlign: 'center', border: '1px solid #fdba74', borderRadius: '4px', background: '#fff' }} 
+                          />
+                        </div>
+                        <div style={{ flex: '1', textAlign: 'right' }}>
+                          <input 
+                            type="number" 
+                            step="0.01" 
+                            value={serv.valor_cobrado} 
+                            onChange={(e) => {
+                              const val = parseFloat(e.target.value) || 0;
+                              setServicosVenda(servicosVenda.map(s => s.id === serv.id ? { ...s, valor_cobrado: val } : s));
+                            }} 
+                            style={{ width: '90px', padding: '4px', textAlign: 'right', border: '1px solid #fdba74', borderRadius: '4px', background: '#fff' }} 
+                          />
+                        </div>
+                        <div style={{ flex: '1.2', textAlign: 'right', fontWeight: 'bold', color: '#7c2d12', fontSize: '1rem' }}>{formatCurrency(serv.quantidade * serv.valor_cobrado)}</div>
+                        <div style={{ marginLeft: '15px' }}>
+                          <button type="button" className="btn-remove" style={{ background: '#fff0f2', color: '#e11d48', border: '1px solid #ffe4e6', padding: '6px 10px', borderRadius: '4px', cursor: 'pointer', transition: 'all 0.2s' }} onClick={() => handleRemoveServico(serv.id)} title="Remover Serviço"><FaTrash /></button>
+                        </div>
+                      </div>
+                    ))}
+                    {itens.length === 0 && servicosVenda.length === 0 && (
                       <div style={{ textAlign: 'center', color: '#a1a1aa', padding: '20px 0', fontSize: '0.95rem' }}>
                         <p style={{ margin: 0, fontStyle: 'italic' }}>A cesta está vazia</p>
                       </div>
-                    ) : (
-                      itens.map((item) => (
-                        <div key={item.id} className="product-item" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 15px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '6px', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
-                          <div style={{ flex: '2', fontWeight: '600', color: '#1e293b', fontSize: '0.95rem' }}>{item.nome}</div>
-                          <div style={{ flex: '1', textAlign: 'center' }}>
-                            <input 
-                              type="number" 
-                              min="1" 
-                              max={item.maxStock} 
-                              value={item.quantidade} 
-                              onChange={(e) => handleChangeCartQuantity(item.id, e.target.value)} 
-                              style={{ width: '60px', padding: '4px', textAlign: 'center', border: '1px solid #cbd5e1', borderRadius: '4px', background: '#f8fafc' }} 
-                            />
-                            <div style={{fontSize: '0.7rem', color: '#64748b', marginTop: '2px'}}>Máx: {item.maxStock}</div>
-                          </div>
-                          <div style={{ flex: '1', textAlign: 'right', color: '#475569', fontSize: '0.9rem' }}>{formatCurrency(item.valor_unitario)}/un</div>
-                          <div style={{ flex: '1.2', textAlign: 'right', fontWeight: 'bold', color: '#0f172a', fontSize: '1rem' }}>{formatCurrency(item.quantidade * item.valor_unitario)}</div>
-                          <div style={{ marginLeft: '15px' }}>
-                            <button type="button" className="btn-remove" style={{ background: '#fff0f2', color: '#e11d48', border: '1px solid #ffe4e6', padding: '6px 10px', borderRadius: '4px', cursor: 'pointer', transition: 'all 0.2s' }} onClick={() => handleRemoveItem(item.id)} title="Remover Produto"><FaTrash /></button>
-                          </div>
-                        </div>
-                      ))
                     )}
                   </div>
-                  <div style={{ marginTop: '15px', textAlign: 'left' }}>
+                  <div style={{ marginTop: '15px', textAlign: 'left', display: 'flex', gap: '10px' }}>
                     <button type="button" className="btn btn-primary" onClick={async () => { try { const freshEstoque = await estoqueService.listarEstoque(); setEstoques(Array.isArray(freshEstoque) ? freshEstoque : []) } catch(e) {} setShowListModal(true) }} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px', background: '#3b82f6', color: 'white', borderRadius: '6px', fontWeight: '600', border: 'none' }}>
                       <FaPlus /> Adicionar Produto à Cesta
+                    </button>
+                    <button type="button" className="btn btn-warning" onClick={() => setShowServicoModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px', background: '#f59e0b', color: 'white', borderRadius: '6px', fontWeight: '600', border: 'none' }}>
+                      <FaPlus /> Adicionar Serviço
                     </button>
                   </div>
                 </div>
@@ -1172,6 +1362,50 @@ function Vendas() {
               <button type="button" className="btn btn-success" onClick={handleConfirmProduct}>
                 Adicionar
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showServicoModal && (
+        <div className="modal-overlay" style={{ display: 'flex' }} onClick={() => setShowServicoModal(false)}>
+          <div className="modal-card" style={{ width: '600px', maxWidth: '90%' }} onClick={(e) => e.stopPropagation()}>
+            <h3>Catálogo de Serviços</h3>
+            <div className="table-container" style={{ maxHeight: '400px', overflowY: 'auto' }}>
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Serviço</th>
+                    <th>Valor Base</th>
+                    <th>Ação</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {servicosDisponiveis.map(s => (
+                    <tr key={s.id}>
+                      <td>{s.nome}</td>
+                      <td>{formatCurrency(s.valor)}</td>
+                      <td>
+                        <button 
+                          type="button" 
+                          className="btn btn-sm btn-warning" 
+                          onClick={() => { handleAddServicoToCart(s); setShowServicoModal(false); }}
+                        >
+                          Adicionar Serviço
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                  {servicosDisponiveis.length === 0 && (
+                    <tr>
+                      <td colSpan="3" style={{ textAlign: 'center' }}>Nenhum serviço cadastrado no sistema.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+            <div className="modal-actions" style={{ marginTop: '20px' }}>
+              <button type="button" className="btn btn-cancel" onClick={() => setShowServicoModal(false)}>Fechar Catálogo</button>
             </div>
           </div>
         </div>

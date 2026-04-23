@@ -14,6 +14,7 @@ import (
 	"super-br/internal/domain/produto"
 	"super-br/internal/domain/relatorio"
 	"super-br/internal/domain/sucata"
+	"super-br/internal/domain/servico"
 	"super-br/internal/domain/usuario"
 	"super-br/internal/domain/venda"
 
@@ -52,8 +53,10 @@ func Connect(cfg *config.Config) *gorm.DB {
 		&sucata.EstoqueSucata{},
 		&movimentacao.Movimentacao{},
 		&movimentacao_sucata.MovimentacaoSucata{},
+		&servico.Servico{},
 		&venda.Venda{},
 		&venda.ItemVenda{},
+		&venda.ItemServicoVenda{},
 		&venda.Pagamento{},
 		&notificacao.Notificacao{},
 		&relatorio.Relatorio{},

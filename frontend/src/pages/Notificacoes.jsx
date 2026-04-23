@@ -78,6 +78,12 @@ function Notificacoes() {
     }
   }
 
+  const statsNotif = [
+    { icon: 'fa-bell', bgClass: 'bg-blue-light', title: 'Notificações', value: notificacoes.length },
+    { icon: 'fa-envelope-open', bgClass: 'bg-yellow-light', title: 'Não Lidas', value: notificacoes.filter(n => !n.lida).length },
+    { icon: 'fa-triangle-exclamation', bgClass: 'bg-red-light', title: 'Alertas Críticos', value: notificacoes.filter(n => n.tipo === 'critico').length },
+  ]
+
   if (loading) {
     return (
       <div className="loading-container">
@@ -98,6 +104,20 @@ function Notificacoes() {
 
   return (
     <>
+      <div className="stats-grid" style={{ marginBottom: '20px' }}>
+        {statsNotif.map((stat, index) => (
+          <div key={index} className="card stat-card">
+            <div className={`stat-icon ${stat.bgClass}`}>
+              <i className={`fas ${stat.icon}`}></i>
+            </div>
+            <div className="stat-info">
+              <h3>{stat.title}</h3>
+              <p>{stat.value}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
       <div className="card">
         <div className="notifications-header">
           <h3>Suas Mensagens e Alertas</h3>

@@ -1,6 +1,7 @@
 package venda
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -25,6 +26,13 @@ type itemVendaInput struct {
 	CodLote   string `json:"cod_lote"`
 }
 
+// servicoVendaInput representa um serviço prestado na venda.
+type servicoVendaInput struct {
+	ServicoID    uint    `json:"servico_id" binding:"required"`
+	ValorCobrado float64 `json:"valor_cobrado" binding:"min=0"`
+	Quantidade   int     `json:"quantidade" binding:"min=1"`
+}
+
 // pagamentoVendaInput representa uma forma de pagamento para a venda.
 type pagamentoVendaInput struct {
 	Tipo  string  `json:"tipo" binding:"required,oneof=pix credito debito dinheiro sucata"`
@@ -39,23 +47,28 @@ type criarVendaInput struct {
 	DocumentoCliente string                `json:"documento_cliente"`
 	TelefoneCliente  string                `json:"telefone_cliente"`
 	Observacoes      string                `json:"observacoes"`
-	Itens            []itemVendaInput      `json:"itens" binding:"required,min=1,dive"`
+	Itens            []itemVendaInput      `json:"itens" binding:"omitempty,dive"`
+	Servicos         []servicoVendaInput   `json:"servicos" binding:"omitempty,dive"`
 	Pagamentos       []pagamentoVendaInput `json:"pagamentos" binding:"omitempty,dive"`
 	TrocoDevolvido   float64               `json:"troco_devolvido"`
 }
 
 // traduzirErroBinding converte mensagens técnicas do validator em mensagens amigáveis.
 func traduzirErroBinding(err error) string {
+	fmt.Printf("ERRO BINDING: %v\n", err)
 	msg := err.Error()
 
 	if contains(msg, "Itens") && contains(msg, "min") {
 		return "a venda deve conter ao menos um item"
 	}
-	if contains(msg, "Itens") && contains(msg, "required") {
-		return "informe ao menos um item na venda"
+	if contains(msg, "Itens") && contains(msg, "required") && contains(msg, "Servicos") && contains(msg, "required") {
+		return "informe ao menos um item ou serviço na venda"
 	}
 	if contains(msg, "ProdutoID") && contains(msg, "required") {
 		return "produto_id é obrigatório em cada item"
+	}
+	if contains(msg, "ServicoID") && contains(msg, "required") {
+		return "servico_id é obrigatório em cada serviço"
 	}
 	if contains(msg, "TipoPreco") && contains(msg, "oneof") {
 		return "tipo_preco inválido — use 'atacado' ou 'varejo'"
@@ -102,6 +115,11 @@ func (h *Handler) CriarVenda(c *gin.Context) {
 		itens[i] = itemInput{ProdutoID: it.ProdutoID, TipoPreco: it.TipoPreco, CodLote: it.CodLote}
 	}
 
+	servicos := make([]servicoInput, len(input.Servicos))
+	for i, s := range input.Servicos {
+		servicos[i] = servicoInput{ServicoID: s.ServicoID, ValorCobrado: s.ValorCobrado, Quantidade: s.Quantidade}
+	}
+
 	pags := make([]pagamentoInput, len(input.Pagamentos))
 	for i, pg := range input.Pagamentos {
 		pags[i] = pagamentoInput{Tipo: pg.Tipo, Valor: pg.Valor}
@@ -114,6 +132,7 @@ func (h *Handler) CriarVenda(c *gin.Context) {
 		input.TelefoneCliente,
 		input.Observacoes,
 		itens,
+		servicos,
 		pags,
 		usuarioID.(uint),
 		input.TrocoDevolvido,
@@ -148,6 +167,11 @@ func (h *Handler) AtualizarVenda(c *gin.Context) {
 		itens[i] = itemInput{ProdutoID: it.ProdutoID, TipoPreco: it.TipoPreco}
 	}
 
+	servicos := make([]servicoInput, len(input.Servicos))
+	for i, s := range input.Servicos {
+		servicos[i] = servicoInput{ServicoID: s.ServicoID, ValorCobrado: s.ValorCobrado, Quantidade: s.Quantidade}
+	}
+
 	pags := make([]pagamentoInput, len(input.Pagamentos))
 	for i, pg := range input.Pagamentos {
 		pags[i] = pagamentoInput{Tipo: pg.Tipo, Valor: pg.Valor}
@@ -161,6 +185,7 @@ func (h *Handler) AtualizarVenda(c *gin.Context) {
 		input.TelefoneCliente,
 		input.Observacoes,
 		itens,
+		servicos,
 		pags,
 		usuarioID.(uint),
 		input.TrocoDevolvido,

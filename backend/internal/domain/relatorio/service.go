@@ -113,7 +113,14 @@ type VolumePorProduto struct {
 	Produto    string  `json:"produto"`
 	Categoria  string  `json:"categoria"`
 	Quantidade int     `json:"quantidade"`
-	ValorTotal float64 `json:"valor_total"` // Novo: Faturamento bruto por item
+	ValorTotal float64 `json:"valor_total"`
+}
+
+// VolumePorServico detalha os serviços prestados
+type VolumePorServico struct {
+	Servico    string  `json:"servico"`
+	Quantidade int     `json:"quantidade"`
+	ValorTotal float64 `json:"valor_total"`
 }
 
 // ResumoVenda representa os dados agregados para o relatório
@@ -121,11 +128,13 @@ type ResumoVenda struct {
 	PeriodoInicio  time.Time           `json:"periodo_inicio"`
 	PeriodoFim     time.Time           `json:"periodo_fim"`
 	TotalProdutos  float64             `json:"total_produtos"`   // Valor nominal das baterias (Bruto)
+	TotalServicos  float64             `json:"total_servicos"`   // Novo: Valor total de serviços
 	TotalRecebido  float64             `json:"total_recebido"`   // O que o cliente entregou total
 	TotalTrocoReal float64             `json:"total_troco_real"` // O que saiu de troco na prática
 	ReceitaLiquida     float64             `json:"receita_liquida"`  // O que ficou no caixa (Recebido - Troco)
 	TotalItensEstoque  int                 `json:"total_itens_estoque"` // Novo: Saldo atual do estoque (Geral)
-	Volumes            []VolumePorProduto  `json:"volumes"`          // Novo: Lista detalhada por produto
+	Volumes            []VolumePorProduto  `json:"volumes"`          // Lista detalhada por produto
+	VolumesServicos    []VolumePorServico  `json:"volumes_servicos"`  // Novo: Lista detalhada por serviço
 	PorPagamento   map[string]float64  `json:"por_pagamento"`
 	PorStatus      map[string]int      `json:"por_status"`
 	Vendas         []venda.Venda       `json:"vendas"`
@@ -141,6 +150,7 @@ func (s *Service) ObterDadosVendas(inicio, fim time.Time) (*ResumoVenda, error) 
 	fimAjustado := time.Date(fim.Year(), fim.Month(), fim.Day(), 23, 59, 59, 999999999, loc)
 
 	err := s.db.Preload("Itens.ItemEstoque.Produto").
+		Preload("Servicos.Servico").
 		Preload("Pagamentos").
 		Preload("Usuario"). // Preload do vendedor
 		Where("data >= ? AND data <= ?", inicioAjustado, fimAjustado).
@@ -159,13 +169,20 @@ func (s *Service) ObterDadosVendas(inicio, fim time.Time) (*ResumoVenda, error) 
 
 	// Mapa temporário para agrupar por ProdutoID para facilitar a soma
 	mapVolumes := make(map[string]*VolumePorProduto)
+	mapVolumesServ := make(map[string]*VolumePorServico)
 
 	for _, v := range vendas {
 		resumo.PorStatus[v.Status]++
 
 		// Apenas vendas concluídas somam no fluxo financeiro
 		if v.Status == "concluida" {
-			resumo.TotalProdutos += v.ValorTotal
+			// Separar produtos e serviços
+			var totalP, totalS float64
+			for _, it := range v.Itens { totalP += it.ValorUnitario * float64(it.Quantidade) }
+			for _, sv := range v.Servicos { totalS += sv.ValorCobrado * float64(sv.Quantidade) }
+			
+			resumo.TotalProdutos += totalP
+			resumo.TotalServicos += totalS
 			
 			var pagoNaVenda float64
 			for _, p := range v.Pagamentos {
@@ -199,11 +216,33 @@ func (s *Service) ObterDadosVendas(inicio, fim time.Time) (*ResumoVenda, error) 
 				}
 			}
 		}
+
+		// Agregar por Serviço
+		for _, sv := range v.Servicos {
+			if sv.Servico.ID != 0 {
+				chave := fmt.Sprintf("%d", sv.Servico.ID)
+				vTotalServ := sv.ValorCobrado * float64(sv.Quantidade)
+				
+				if vol, ok := mapVolumesServ[chave]; ok {
+					vol.Quantidade += sv.Quantidade
+					vol.ValorTotal += vTotalServ
+				} else {
+					mapVolumesServ[chave] = &VolumePorServico{
+						Servico:    sv.Servico.Nome,
+						Quantidade: sv.Quantidade,
+						ValorTotal: vTotalServ,
+					}
+				}
+			}
+		}
 	}
 
 	// Converte o mapa de volumes para a slice final do resumo
 	for _, vol := range mapVolumes {
 		resumo.Volumes = append(resumo.Volumes, *vol)
+	}
+	for _, vol := range mapVolumesServ {
+		resumo.VolumesServicos = append(resumo.VolumesServicos, *vol)
 	}
 
 	// Adicionar o saldo atual do estoque para o dashboard
@@ -228,17 +267,19 @@ func (s *Service) GerarPDFVendas(resumo *ResumoVenda) (*gofpdf.Fpdf, error) {
 
 	// 2. Cards de Resumo (KPIs de Fluxo de Caixa)
 	// Ajustamos as larguras para caber 4 cards lado a lado
-	const cardW = 44.0
-	const cardGap = 3.0
+	const cardW = 35.0
+	const cardGap = 2.5
 	var curX = 15.0
 
-	s.desenharCard(pdf, curX, 45, cardW, 22, tr("VALOR PRODUTOS"), formatarMoedaBRL(resumo.TotalProdutos), 100, 100, 100) // Cinza
+	s.desenharCard(pdf, curX, 45, cardW, 22, tr("PRODUTOS"), formatarMoedaBRL(resumo.TotalProdutos), 100, 100, 100) // Cinza
+	curX += cardW + cardGap
+	s.desenharCard(pdf, curX, 45, cardW, 22, tr("SERVIÇOS"), formatarMoedaBRL(resumo.TotalServicos), 245, 158, 11) // Laranja
 	curX += cardW + cardGap
 	s.desenharCard(pdf, curX, 45, cardW, 22, tr("TOTAL RECEBIDO"), formatarMoedaBRL(resumo.TotalRecebido), 10, 31, 68) // Azul
 	curX += cardW + cardGap
-	s.desenharCard(pdf, curX, 45, cardW, 22, tr("TROCO REALIZADO"), formatarMoedaBRL(resumo.TotalTrocoReal), 220, 53, 69) // Vermelho
+	s.desenharCard(pdf, curX, 45, cardW, 22, tr("TROCO REAL"), formatarMoedaBRL(resumo.TotalTrocoReal), 220, 53, 69) // Vermelho
 	curX += cardW + cardGap
-	s.desenharCard(pdf, curX, 45, cardW, 22, tr("RECEITA LÍQUIDA"), formatarMoedaBRL(resumo.ReceitaLiquida), 40, 167, 69) // Verde
+	s.desenharCard(pdf, curX, 45, cardW, 22, tr("REC. LÍQUIDA"), formatarMoedaBRL(resumo.ReceitaLiquida), 40, 167, 69) // Verde
 
 	pdf.Ln(32)
 
@@ -255,10 +296,13 @@ func (s *Service) GerarPDFVendas(resumo *ResumoVenda) (*gofpdf.Fpdf, error) {
 	colVal := 70.0
 	altLinha := 9.0 // Aumentada p/ respirar melhor
 
-	pdf.CellFormat(colLabel, altLinha, tr("(+) Total Bruto Vendido (Valor Nominal das Mercadorias)"), "B", 0, "L", false, 0, "")
+	pdf.CellFormat(colLabel, altLinha, tr("(+) Total Bruto em Produtos (Baterias)"), "B", 0, "L", false, 0, "")
 	pdf.CellFormat(colVal, altLinha, formatarMoedaBRL(resumo.TotalProdutos), "B", 1, "R", false, 0, "")
 
-	pdf.CellFormat(colLabel, altLinha, tr("(+) Entradas em Caixa (O que os clientes entregaram para pagar)"), "B", 0, "L", false, 0, "")
+	pdf.CellFormat(colLabel, altLinha, tr("(+) Total Bruto em Serviços Prestados"), "B", 0, "L", false, 0, "")
+	pdf.CellFormat(colVal, altLinha, formatarMoedaBRL(resumo.TotalServicos), "B", 1, "R", false, 0, "")
+
+	pdf.CellFormat(colLabel, altLinha, tr("(+) Entradas Brutas em Caixa (Recebido Total)"), "B", 0, "L", false, 0, "")
 	pdf.CellFormat(colVal, altLinha, formatarMoedaBRL(resumo.TotalRecebido), "B", 1, "R", false, 0, "")
 
 	pdf.SetTextColor(200, 0, 0)
@@ -355,6 +399,30 @@ func (s *Service) GerarPDFVendas(resumo *ResumoVenda) (*gofpdf.Fpdf, error) {
 		pdf.CellFormat(30, 8, fmt.Sprintf("%d un", vol.Quantidade), "", 0, "R", true, 0, "")
 		pdf.CellFormat(45, 8, formatarMoedaBRL(vol.ValorTotal), "", 1, "R", true, 0, "")
 		zebra = !zebra
+	}
+	pdf.Ln(8)
+
+	// 6. Detalhamento Analítico por Serviço
+	if len(resumo.VolumesServicos) > 0 {
+		pdf.SetFont("Arial", "B", 13)
+		pdf.SetFillColor(230, 230, 230)
+		pdf.CellFormat(185, 9, tr("DETALHAMENTO ANALÍTICO DE SERVIÇOS"), "0", 1, "C", true, 0, "")
+		pdf.Ln(2)
+
+		pdf.SetFont("Arial", "B", 9)
+		pdf.CellFormat(110, 8, tr("Serviço"), "B", 0, "L", false, 0, "")
+		pdf.CellFormat(30, 8, tr("Qtd"), "B", 0, "R", false, 0, "")
+		pdf.CellFormat(45, 8, tr("Total"), "B", 1, "R", false, 0, "")
+
+		pdf.SetFont("Arial", "", 8)
+		zebra = false
+		for _, vol := range resumo.VolumesServicos {
+			if zebra { pdf.SetFillColor(249, 249, 249) } else { pdf.SetFillColor(255, 255, 255) }
+			pdf.CellFormat(110, 8, "  "+tr(vol.Servico), "", 0, "L", true, 0, "")
+			pdf.CellFormat(30, 8, fmt.Sprintf("%d", vol.Quantidade), "", 0, "R", true, 0, "")
+			pdf.CellFormat(45, 8, formatarMoedaBRL(vol.ValorTotal), "", 1, "R", true, 0, "")
+			zebra = !zebra
+		}
 	}
 
 	pdf.SetY(-20)

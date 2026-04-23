@@ -189,9 +189,9 @@ func (s *Service) GerarComprovante(v *venda.Venda) ([]byte, error) {
 			continue
 		}
 
-		disc := fmt.Sprintf("%s %s (Lote: %s)",
-			item.ItemEstoque.Produto.Nome,
+		disc := fmt.Sprintf("[%s] %s (Lote: %s)",
 			item.ItemEstoque.Produto.Categoria,
+			item.ItemEstoque.Produto.Nome,
 			item.ItemEstoque.CodLote,
 		)
 		chave := fmt.Sprintf("%d_%s_%.2f", item.ItemEstoque.ProdutoID, item.ItemEstoque.CodLote, item.ValorUnitario)
@@ -203,6 +203,22 @@ func (s *Service) GerarComprovante(v *venda.Venda) ([]byte, error) {
 				Quantidade:    item.Quantidade,
 				Discriminacao: disc,
 				ValorUnitario: item.ValorUnitario,
+			}
+			ordem = append(ordem, chave)
+		}
+	}
+
+	for _, serv := range v.Servicos {
+		disc := fmt.Sprintf("[Serviço] %s", serv.Servico.Nome)
+		chave := fmt.Sprintf("serv_%d_%.2f", serv.ServicoID, serv.ValorCobrado)
+
+		if g, ok := agrupados[chave]; ok {
+			g.Quantidade += serv.Quantidade
+		} else {
+			agrupados[chave] = &grupo{
+				Quantidade:    serv.Quantidade,
+				Discriminacao: disc,
+				ValorUnitario: serv.ValorCobrado,
 			}
 			ordem = append(ordem, chave)
 		}

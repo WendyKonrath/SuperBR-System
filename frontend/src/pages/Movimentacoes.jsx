@@ -88,6 +88,12 @@ function Movimentacoes() {
     })
   }
 
+  const statsMov = [
+    { icon: 'fa-exchange-alt', bgClass: 'bg-blue-light', title: 'Movimentações', value: movimentacoes.length },
+    { icon: 'fa-arrow-down', bgClass: 'bg-green-light', title: 'Entradas', value: movimentacoes.filter(m => m.tipo?.toLowerCase().includes('entrada') || m.tipo?.toLowerCase() === 'disponivel').length },
+    { icon: 'fa-arrow-up', bgClass: 'bg-red-light', title: 'Saídas', value: movimentacoes.filter(m => m.tipo?.toLowerCase().includes('saida') || m.tipo?.toLowerCase() === 'vendido' || m.tipo?.toLowerCase() === 'fora_estoque').length },
+  ]
+
   if (loading && movimentacoes.length === 0) {
     return (
       <div className="loading-container">
@@ -99,6 +105,20 @@ function Movimentacoes() {
 
   return (
     <>
+      <div className="stats-grid" style={{ marginBottom: '20px' }}>
+        {statsMov.map((stat, index) => (
+          <div key={index} className="card stat-card">
+            <div className={`stat-icon ${stat.bgClass}`}>
+              <i className={`fas ${stat.icon}`}></i>
+            </div>
+            <div className="stat-info">
+              <h3>{stat.title}</h3>
+              <p>{stat.value}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
       <div className="card" style={{ marginBottom: '20px', padding: '20px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', borderBottom: '1px solid #f1f5f9', paddingBottom: '15px' }}>
           <div className="filter-group" style={{ display: 'flex', gap: '8px' }}>

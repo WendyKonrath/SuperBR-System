@@ -15,6 +15,7 @@ import (
 	"super-br/internal/domain/produto"
 	"super-br/internal/domain/relatorio"
 	"super-br/internal/domain/sucata"
+	"super-br/internal/domain/servico"
 	"super-br/internal/domain/usuario"
 	"super-br/internal/domain/venda"
 	"super-br/internal/domain/dashboard"
@@ -35,6 +36,7 @@ func main() {
 	movRepo := movimentacao.NewRepository(database)
 	movSucataRepo := movs.NewRepository(database)
 	sucataRepo := sucata.NewRepository(database)
+	servicoRepo := servico.NewRepository(database)
 	vendaRepo := venda.NewRepository(database)
 	notifRepo := notificacao.NewRepository(database)
 	configRepo := configuracao.NewRepository(database)
@@ -46,6 +48,7 @@ func main() {
 
 	usuarioService := usuario.NewService(usuarioRepo, cfg.JWTSecret, cfg.JWTExpirationHours)
 	produtoService := produto.NewService(produtoRepo)
+	servicoService := servico.NewService(servicoRepo, notifService)
 	estoqueService := estoque.NewService(estoqueRepo, produtoRepo, movRepo, notifService, configService)
 	sucataService := sucata.NewService(sucataRepo, movSucataRepo, configService)
 	vendaService := venda.NewService(vendaRepo, estoqueRepo, produtoRepo, movRepo, notifService, estoqueService)
@@ -60,6 +63,7 @@ func main() {
 	// Handlers
 	usuarioHandler := usuario.NewHandler(usuarioService)
 	produtoHandler := produto.NewHandler(produtoService)
+	servicoHandler := servico.NewHandler(servicoService)
 	estoqueHandler := estoque.NewHandler(estoqueService)
 	sucataHandler := sucata.NewHandler(sucataService)
 	vendaHandler := venda.NewHandler(vendaService)
@@ -114,6 +118,13 @@ func main() {
 		protected.POST("/produtos", middleware.ExigirPerfil("admin", "gerente"), produtoHandler.Criar)
 		protected.PUT("/produtos/:id", middleware.ExigirPerfil("admin", "gerente"), produtoHandler.Atualizar)
 		protected.DELETE("/produtos/:id", middleware.ExigirPerfil("admin", "gerente"), produtoHandler.Deletar)
+
+		// Serviços
+		protected.GET("/servicos", servicoHandler.Listar)
+		protected.GET("/servicos/:id", servicoHandler.BuscarPorID)
+		protected.POST("/servicos", middleware.ExigirPerfil("admin", "gerente"), servicoHandler.Criar)
+		protected.PUT("/servicos/:id", middleware.ExigirPerfil("admin", "gerente"), servicoHandler.Atualizar)
+		protected.DELETE("/servicos/:id", middleware.ExigirPerfil("admin", "gerente"), servicoHandler.Deletar)
 
 		// Estoque - itens individuais
 		protected.GET("/estoque/itens", estoqueHandler.ListarItens)

@@ -19,6 +19,7 @@ export const vendaService = {
       observacoes: data.observacoes || '',
       troco_devolvido: data.troco_devolvido || 0,
       itens: data.itens,
+      servicos: data.servicos || [],
       pagamentos: data.pagamentos || []
     });
   },
@@ -32,6 +33,7 @@ export const vendaService = {
       observacoes: data.observacoes || '',
       troco_devolvido: data.troco_devolvido || 0,
       itens: data.itens,
+      servicos: data.servicos || [],
       pagamentos: data.pagamentos || []
     });
   },

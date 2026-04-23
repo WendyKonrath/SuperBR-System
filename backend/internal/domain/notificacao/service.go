@@ -70,6 +70,12 @@ func (s *Service) NotificarVendaRealizada(tx *gorm.DB, vendaID uint, nomeCliente
 	return s.notificarAdmins(tx, TipoVendaRealizada, mensagem)
 }
 
+// NotificarModificacaoServico dispara notificação quando um serviço tem seu valor ou nome alterado.
+func (s *Service) NotificarModificacaoServico(tx *gorm.DB, nomeServico string, quemModificou string) error {
+	mensagem := fmt.Sprintf("Atenção: O serviço '%s' foi modificado por %s.", nomeServico, quemModificou)
+	return s.notificarAdmins(tx, TipoServicoModificado, mensagem)
+}
+
 // Listar retorna todas as notificações do usuário autenticado.
 // Se apenasNaoLidas for true, retorna somente as não lidas.
 func (s *Service) Listar(usuarioID uint, apenasNaoLidas bool) ([]Notificacao, error) {

@@ -31,6 +31,7 @@ func (r *Repository) BuscarPorID(id uint) (*Venda, error) {
 	result := r.db.
 		Preload("Usuario").
 		Preload("Itens.ItemEstoque.Produto").
+		Preload("Servicos.Servico").
 		Preload("Pagamentos").
 		First(&v, id)
 	return &v, result.Error
@@ -48,6 +49,7 @@ func (r *Repository) ListarPorPeriodo(inicio, fim time.Time) ([]Venda, error) {
 	result := r.db.
 		Preload("Usuario").
 		Preload("Itens.ItemEstoque.Produto").
+		Preload("Servicos.Servico").
 		Preload("Pagamentos").
 		Where("data BETWEEN ? AND ?", inicio, fim).
 		Order("data DESC").
@@ -61,6 +63,7 @@ func (r *Repository) ListarPorStatus(status string) ([]Venda, error) {
 	result := r.db.
 		Preload("Usuario").
 		Preload("Itens.ItemEstoque.Produto").
+		Preload("Servicos.Servico").
 		Preload("Pagamentos").
 		Where("status = ?", status).
 		Order("data DESC").
@@ -74,6 +77,7 @@ func (r *Repository) ListarTodas() ([]Venda, error) {
 	result := r.db.
 		Preload("Usuario").
 		Preload("Itens.ItemEstoque.Produto").
+		Preload("Servicos.Servico").
 		Preload("Pagamentos").
 		Order("data DESC").
 		Find(&vendas)

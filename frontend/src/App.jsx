@@ -10,6 +10,7 @@ import Vendas from './pages/Vendas'
 import Relatorios from './pages/Relatorios'
 import Notificacoes from './pages/Notificacoes'
 import Produtos from './pages/Produtos'
+import Servicos from './pages/Servicos'
 import Usuarios from './pages/Usuarios'
 import Movimentacoes from './pages/Movimentacoes'
 import Configuracoes from './pages/Configuracoes'
@@ -61,6 +62,12 @@ function App() {
           <Route path="/produtos" element={
             <ProtectedRoute>
               <Layout><Produtos /></Layout>
+            </ProtectedRoute>
+          } />
+
+          <Route path="/servicos" element={
+            <ProtectedRoute>
+              <Layout><Servicos /></Layout>
             </ProtectedRoute>
           } />
 
