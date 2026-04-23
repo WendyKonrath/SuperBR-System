@@ -1,6 +1,10 @@
 package produto
 
-import "errors"
+import (
+	"errors"
+
+	"gorm.io/gorm"
+)
 
 // Service contém a lógica de negócio do domínio de produtos.
 type Service struct {
@@ -94,13 +98,31 @@ func (s *Service) Deletar(id uint) error {
 		return errors.New("produto não encontrado")
 	}
 
-	temItens, err := s.repo.PossuiItensNoEstoque(id)
-	if err != nil {
-		return errors.New("erro ao verificar estoque do produto")
-	}
-	if temItens {
-		return errors.New("não é possível excluir um produto que possui itens no estoque")
+	// 1. Verifica se existem itens físicos vinculados (Baterias)
+	var countItens int64
+	if err := s.repo.db.Table("item_estoques").Where("produto_id = ?", id).Count(&countItens).Error; err != nil {
+		return err
 	}
 
-	return s.repo.Deletar(id)
+	// 2. Verifica se existem registros de sucata vinculados
+	var countSucata int64
+	if err := s.repo.db.Table("estoque_sucatas").Where("produto_id = ?", id).Count(&countSucata).Error; err != nil {
+		return err
+	}
+
+	// Se houver qualquer item real ou sucata, bloqueia a deleção (segurança do histórico)
+	if countItens > 0 || countSucata > 0 {
+		return errors.New("não é possível excluir: produto possui itens vinculados (SQLSTATE 23503)")
+	}
+
+	// 3. Se não houver itens reais, podemos limpar o resumo e deletar o produto
+	return s.repo.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Exec("DELETE FROM estoques WHERE produto_id = ?", id).Error; err != nil {
+			return err
+		}
+		if err := tx.Delete(&Produto{}, id).Error; err != nil {
+			return err
+		}
+		return nil
+	})
 }
