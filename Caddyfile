@@ -1,0 +1,14 @@
+# Sistema de Gestão (Template de Exemplo)
+admin.seu-dominio.com.br {
+    encode gzip zstd
+
+    # Proxy para as chamadas de API do Backend
+    reverse_proxy /api/* backend:8080
+
+    # Proxy para o Frontend (Arquivos Estáticos)
+    reverse_proxy * frontend:80
+
+    log {
+        output file /data/caddy_admin.log
+    }
+}

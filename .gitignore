@@ -1,0 +1,41 @@
+# --- Segredos e Configurações (NUNCA SUBIR) ---
+.env
+.env.prod
+.env.local
+backend/.env
+frontend/.env.local
+
+# --- Banco de Dados e Storage (Dados locais) ---
+postgres_data/
+backend/storage/*
+!backend/storage/.gitkeep
+
+# --- Backend (Go) ---
+backend/main
+backend/main.exe
+backend/vendor/
+backend/*.log
+backend/tmp/
+
+# --- Frontend (Node/React) ---
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.next/
+frontend/.vercel/
+frontend/*.log
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+
+# --- Docker ---
+.docker/
+# NÃO ignore os Dockerfiles ou docker-compose.yml, eles são necessários para o deploy!
+
+# --- OS / IDE ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.bak

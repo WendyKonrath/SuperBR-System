@@ -1,0 +1,1369 @@
+:root {
+    --primary-color: #050a30;
+    --secondary-color: #28A745;
+    --alert-color: #FFC107;
+    --bg-color: #F4F6F9;
+    --white: #FFFFFF;
+    --text-color: #343A40;
+    --sidebar-width: 250px;
+    --header-height: 70px;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    line-height: 1.6;
+}
+
+a {
+    text-decoration: none;
+    color: inherit;
+}
+
+/* Design System Components */
+.card {
+    background-color: var(--white);
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.chart-container {
+    position: relative;
+    height: 300px;
+    width: 100%;
+}
+
+.btn {
+    padding: 10px 20px;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background 0.3s;
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    color: var(--white);
+}
+
+.btn-primary:hover {
+    background-color: #112d63;
+}
+
+.btn-success {
+    background-color: var(--secondary-color);
+    color: var(--white);
+}
+
+.btn-warning {
+    background-color: var(--alert-color);
+    color: var(--text-color);
+}
+
+.table-container {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+th, td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+th {
+    background-color: #f8f9fa;
+    color: var(--text-color);
+    font-weight: 600;
+}
+
+/* Sidebar & Header */
+.app-container {
+    display: flex;
+    min-height: 100vh;
+}
+
+.sidebar {
+    width: var(--sidebar-width);
+    background-color: var(--primary-color);
+    color: var(--white);
+    padding: 20px 0;
+    position: fixed;
+    z-index: 100;
+    height: 100vh;
+}
+
+.sidebar-logo {
+    padding: 15px 20px 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-logo img {
+    width: 100%;
+    max-width: 210px;
+    height: auto;
+}
+
+.sidebar-menu {
+    list-style: none;
+    margin-top: 20px;
+}
+
+.sidebar-menu li {
+    padding: 12px 20px;
+    transition: background 0.3s;
+}
+
+.sidebar-menu li:hover, .sidebar-menu li.active {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-menu li a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.main-content {
+    margin-left: var(--sidebar-width);
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.header {
+    height: var(--header-height);
+    background-color: var(--white);
+    padding: 0 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.content-body {
+    padding: 30px;
+}
+
+/* Login Page Styles */
+.login-page {
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(135deg, var(--primary-color) 0%, #1a3a7a 100%);
+}
+
+.login-card {
+    width: 400px;
+    background: var(--white);
+    padding: 40px;
+    border-radius: 15px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+}
+
+.login-card h2 {
+    margin-bottom: 30px;
+    text-align: center;
+    color: var(--primary-color);
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    outline: none;
+}
+
+.form-group input:focus {
+    border-color: var(--primary-color);
+}
+
+.login-btn {
+    width: 100%;
+    padding: 12px;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+/* Dashboard Stats */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.stat-card {
+    padding: 25px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.stat-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+}
+
+.stat-info h3 {
+    font-size: 14px;
+    color: #7f8c8d;
+    margin-bottom: 5px;
+}
+
+.stat-info p {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.bg-blue-light { background-color: #e3f2fd; color: #1976d2; }
+.bg-green-light { background-color: #e8f5e9; color: #2e7d32; }
+.bg-yellow-light { background-color: #fffde7; color: #fbc02d; }
+.bg-purple-light { background-color: #f3e5f5; color: #7b1fa2; }
+
+/* Charts and Lists */
+.dashboard-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.alert-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.alert-item:last-child { border-bottom: none; }
+
+.badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.badge-success { background-color: #e8f5e9; color: #2e7d32; }
+.badge-danger { background-color: #ffebee; color: #c62828; }
+.badge-warning { background-color: #fff3e0; color: #ef6c00; }
+.badge-reembolsado { background-color: #f3e5f5; color: #7b1fa2; } /* Purple shade */
+
+/* Table & Filter Styles */
+.filters-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    background: var(--white);
+    padding: 15px 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.filter-group {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.filter-input {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    outline: none;
+}
+
+.filter-input:focus {
+    border-color: var(--primary-color);
+}
+
+.action-btn {
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    border: none;
+}
+
+.action-btn-view { background-color: #e3f2fd; color: #1976d2; }
+.action-btn-edit { background-color: #e8f5e9; color: #2e7d32; }
+.action-btn-delete { background-color: #ffebee; color: #c62828; }
+
+.status-in-stock { color: #2e7d32; font-weight: 600; }
+.status-low-stock { color: #fbc02d; font-weight: 600; }
+.status-out-stock { color: #c62828; font-weight: 600; }
+
+/* Modal Styles (Simple implementation) */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+/* Sales Page Styles */
+.sales-container {
+    width: 100%;
+}
+
+.product-search {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.product-search input {
+    width: 100%;
+    padding: 12px 15px 12px 40px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 16px;
+}
+
+.product-search i {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #999;
+}
+
+.cart-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    border-bottom: 1px solid #eee;
+}
+
+.cart-item:last-child { border-bottom: none; }
+
+.cart-total {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 2px solid #eee;
+    font-size: 20px;
+    font-weight: 700;
+    display: flex;
+    justify-content: space-between;
+}
+
+.payment-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.payment-option {
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.payment-option:hover, .payment-option.selected {
+    border-color: var(--primary-color);
+    background-color: #e3f2fd;
+    color: var(--primary-color);
+}
+
+/* Comprovante de Pedidos Form Style */
+.receipt-form {
+    background-color: var(--white);
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    font-size: 14px;
+}
+
+.receipt-header {
+    text-align: right;
+    margin-bottom: 20px;
+}
+
+.receipt-header h1 {
+    text-align: center;
+    font-size: 28px;
+    margin-bottom: 5px;
+    color: #000;
+}
+
+.receipt-header h2 {
+    text-align: center;
+    font-size: 18px;
+    font-weight: 400;
+    margin-bottom: 20px;
+    color: #444;
+}
+
+.receipt-info-grid {
+    display: grid;
+    grid-template-columns: 80px 1fr;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.receipt-info-grid label {
+    font-weight: 600;
+}
+
+.receipt-info-grid input {
+    border: none;
+    border-bottom: 1px solid #ddd;
+    padding: 2px 5px;
+    outline: none;
+    width: 100%;
+}
+
+.receipt-info-grid input:focus {
+    border-bottom-color: var(--primary-color);
+}
+
+.receipt-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+
+.receipt-table th {
+    background-color: #000;
+    color: #fff;
+    padding: 10px;
+    text-align: center;
+    border: 1px solid #000;
+}
+
+.receipt-table td {
+    border: 1px solid #ddd;
+    padding: 5px;
+}
+
+.receipt-table input {
+    width: 100%;
+    border: none;
+    padding: 8px;
+    outline: none;
+    text-align: center;
+}
+
+.receipt-footer {
+    display: grid;
+    grid-template-columns: 2fr 1.5fr;
+    gap: 20px;
+}
+
+.signature-section {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.signature-box {
+    border: 1px solid #ddd;
+    height: 80px;
+    position: relative;
+    padding: 5px;
+}
+
+.signature-box label {
+    position: absolute;
+    top: -10px;
+    left: 10px;
+    background: #fff;
+    padding: 0 5px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.signature-box textarea {
+    width: 100%;
+    height: 100%;
+    border: none;
+    resize: none;
+    outline: none;
+}
+
+.observations-box {
+    border: 1px solid #ddd;
+    height: 100px;
+    position: relative;
+    padding: 10px;
+}
+
+.observations-box label {
+    position: absolute;
+    top: -10px;
+    left: 10px;
+    background: #fff;
+    padding: 0 5px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.observations-box textarea {
+    width: 100%;
+    height: 100%;
+    border: none;
+    resize: none;
+    outline: none;
+}
+
+.totals-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.totals-table th {
+    background-color: #000;
+    color: #fff;
+    padding: 8px;
+    text-align: center;
+}
+
+.totals-table td {
+    border: 1px solid #ddd;
+    padding: 5px 10px;
+}
+
+.totals-table input {
+    width: 100%;
+    border: none;
+    text-align: right;
+    font-weight: 600;
+    outline: none;
+}
+
+.receipt-summary-view {
+    display: none;
+    background: #f9f9f9;
+    padding: 20px;
+    border: 2px dashed #ddd;
+    border-radius: 10px;
+}
+
+.receipt-summary-view h3 {
+    text-align: center;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+
+.summary-item {
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.summary-item strong {
+    color: #555;
+}
+
+/* Google Forms Style */
+.google-form-container {
+    background: var(--white);
+    width:100%;
+    border-radius: 12px;
+    padding: 30px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+}
+
+.google-form-header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid var(--bg-color);
+}
+
+.google-form-header h1 {
+    font-size: 24px;
+    color: var(--primary-color);
+    margin-bottom: 8px;
+}
+
+.google-form-header h1 i {
+    margin-right: 10px;
+}
+
+.company-info {
+    color: #666;
+    font-size: 13px;
+}
+
+.google-form .form-section {
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #eee;
+}
+
+.google-form .form-section:last-of-type {
+    border-bottom: none;
+}
+
+.form-section-title {
+    font-size: 16px;
+    color: var(--primary-color);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.form-section-title i {
+    width: 24px;
+}
+
+.form-section-title .btn {
+    margin-left: auto;
+}
+
+.google-form .form-field {
+    margin-bottom: 15px;
+}
+
+.google-form .form-field label {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    color: #444;
+    margin-bottom: 6px;
+}
+
+.google-form .form-field input,
+.google-form .form-field textarea,
+.google-form .form-field select {
+    width: 100%;
+    padding: 12px 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: 'Inter', sans-serif;
+    transition: border-color 0.3s;
+}
+
+.google-form .form-field input:focus,
+.google-form .form-field textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.google-form .form-field input[readonly] {
+    background-color: #f5f5f5;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+.form-row.three-cols {
+    grid-template-columns: 1fr 1fr 1fr;
+}
+
+.form-row.signatures {
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+}
+
+.signature-field .signature-box {
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    height: 80px;
+}
+
+.signature-field .signature-box textarea {
+    width: 100%;
+    height: 100%;
+    border: none;
+    resize: none;
+    padding: 10px;
+}
+
+.signature-field .signature-box textarea:focus {
+    outline: none;
+}
+
+.google-form textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.form-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 25px;
+}
+
+.form-actions .btn {
+    min-width: 120px;
+}
+
+/* Products List */
+.products-list {
+    min-height: 100px;
+}
+
+.products-list .empty-message {
+    text-align: center;
+    color: #999;
+    padding: 30px;
+    font-style: italic;
+}
+
+.product-item {
+    background: var(--bg-color);
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-left: 4px solid var(--primary-color);
+}
+
+.product-item-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.product-num {
+    background: var(--primary-color);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.product-name-display {
+    flex: 1;
+    font-weight: 600;
+    color: #333;
+}
+
+.btn-remove {
+    background: none;
+    border: none;
+    color: #dc3545;
+    cursor: pointer;
+    padding: 5px;
+    font-size: 16px;
+}
+
+.btn-remove:hover {
+    color: #a71d2a;
+}
+
+.product-item-details {
+    display: grid;
+    grid-template-columns: 80px 100px 1fr 1fr;
+    gap: 10px;
+    align-items: center;
+}
+
+.product-item-details.no-scrap {
+    grid-template-columns: 80px 1fr 1fr;
+}
+
+.product-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.product-detail label {
+    font-size: 11px;
+    color: #888;
+    text-transform: uppercase;
+}
+
+.product-detail input {
+    padding: 6px 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 13px;
+    width: 100%;
+}
+
+.product-detail span {
+    font-weight: 600;
+    color: #333;
+}
+
+.product-total {
+    color: var(--secondary-color) !important;
+    font-size: 15px !important;
+}
+
+/* Toast Styles */
+.toast-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+}
+
+.toast-card {
+    background: var(--white);
+    border-radius: 12px;
+    width: 450px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+
+.toast-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid #eee;
+}
+
+.toast-header h3 {
+    margin: 0;
+    font-size: 18px;
+    color: var(--primary-color);
+}
+
+.toast-header h3 i {
+    margin-right: 8px;
+}
+
+.toast-close {
+    background: none;
+    border: none;
+    font-size: 20px;
+    color: #999;
+    cursor: pointer;
+    padding: 5px;
+}
+
+.toast-close:hover {
+    color: #333;
+}
+
+.toast-search {
+    padding: 15px 20px;
+    border-bottom: 1px solid #eee;
+    position: relative;
+}
+
+.toast-search i {
+    position: absolute;
+    left: 30px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #999;
+}
+
+.toast-search input {
+    width: 100%;
+    padding: 10px 10px 10px 35px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.toast-search input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.toast-product-list {
+    overflow-y: auto;
+    max-height: 300px;
+    padding: 10px;
+}
+
+.toast-product-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+    margin-bottom: 5px;
+}
+
+.toast-product-item:hover {
+    background: var(--bg-color);
+}
+
+.toast-product-item .product-info {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.toast-product-item .product-name {
+    font-weight: 600;
+    color: #333;
+}
+
+.toast-product-item .product-stock {
+    font-size: 12px;
+    color: #888;
+}
+
+.toast-product-item .product-price {
+    font-weight: 700;
+    color: var(--secondary-color);
+}
+
+.toast-footer {
+    padding: 12px 20px;
+    border-top: 1px solid #eee;
+    text-align: center;
+}
+
+.toast-footer small {
+    color: #888;
+    font-size: 12px;
+}
+
+/* Summary Section Styles */
+.summary-section {
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #eee;
+}
+
+.summary-section:last-child {
+    border-bottom: none;
+}
+
+.summary-section h4 {
+    font-size: 14px;
+    color: var(--primary-color);
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.summary-section h4 i {
+    margin-right: 5px;
+}
+
+/* Login Brand Header */
+.login-brand {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.login-brand__icon {
+    font-size: 40px;
+    color: var(--primary-color);
+}
+
+.login-brand__subtitle {
+    font-size: 20px;
+    color: var(--text-color);
+}
+
+.login-brand__name {
+    font-size: 32px;
+    color: var(--primary-color);
+    margin-top: 10px;
+}
+
+/* Login Error Message */
+.login-error {
+    color: #e74c3c;
+    margin-top: 15px;
+    text-align: center;
+    display: none;
+}
+
+/* ============================================
+   Adições ao style.css — estoque.html
+   Substitui todos os inline styles removidos
+   ============================================ */
+
+/* Botão Sair no header */
+.btn-logout {
+    margin-left: 15px;
+}
+
+/* Título do modal */
+.modal-title {
+    margin-bottom: 20px;
+}
+
+/* Linha dupla de campos no modal (Quantidade + Valor) */
+.form-row {
+    display: flex;
+    gap: 15px;
+}
+
+.form-col {
+    flex: 1;
+}
+
+/* Rodapé de ações do modal */
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+/* Botão Cancelar do modal */
+.btn-cancel {
+    background-color: #eeeeee;
+    color: var(--text-color);
+}
+
+.btn-cancel:hover {
+    background-color: #ddd;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+
+/* ============================================
+   Notificações — notificacoes.html
+   ============================================ */
+
+.notifications-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.notification-item {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    padding: 20px;
+    border-left: 4px solid #eee;
+    margin-bottom: 10px;
+    border-radius: 0 6px 6px 0;
+    transition: background 0.2s;
+}
+
+.notification-item.unread {
+    border-left-color: #dc3545;
+    background-color: #fff8f8;
+}
+
+.notification-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+.notification-body {
+    flex: 1;
+}
+
+.notification-body p {
+    margin: 0;
+}
+
+.notification-text {
+    margin-top: 5px;
+}
+
+.notification-meta {
+    display: block;
+    margin-top: 5px;
+    color: #888;
+    font-size: 13px;
+}
+
+/* ============================================
+   Sucata — sucata.html
+   ============================================ */
+
+/* Select e date input com largura total no modal */
+.filter-input-full {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    outline: none;
+}
+
+.filter-input-full:focus {
+    border-color: var(--primary-color);
+}
+
+/* Input somente leitura (valor calculado automaticamente) */
+.input-readonly {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    outline: none;
+    background-color: #f8f9fa;
+}
+
+/* Dica/observação abaixo de um campo */
+.input-hint {
+    display: block;
+    margin-top: 4px;
+    color: #666;
+    font-size: 12px;
+}
+
+/* ============================================
+   Vendas — vendas.html
+   ============================================ */
+ 
+/* Variante de card sem sombra, com borda sutil (tabela interna) */
+.card-inset {
+    box-shadow: none;
+    border: 1px solid #eee;
+}
+ 
+/* Espaçamento superior na busca de produtos */
+.product-search {
+    margin-top: 15px;
+}
+ 
+/* Indicador de estoque baixo na tabela */
+.stock-low {
+    color: #c62828;
+    font-weight: 600;
+}
+ 
+/* Botão pequeno (ação rápida em tabelas) */
+.btn-sm {
+    padding: 5px 10px;
+    font-size: 13px;
+}
+ 
+/* Container do carrinho */
+.cart-items {
+    margin-top: 15px;
+}
+ 
+/* Título de seção com espaçamento superior */
+.section-title-spaced {
+    margin-top: 30px;
+}
+ 
+/* Opção de pagamento que ocupa duas colunas */
+.payment-option-wide {
+    grid-column: span 2;
+}
+ 
+/* Botão principal de finalizar venda */
+.btn-finalize {
+    width: 100%;
+    margin-top: 30px;
+    padding: 15px;
+    font-size: 18px;
+}
+ 
+/* Modal de confirmação centralizado */
+.modal-card-centered {
+    text-align: center;
+}
+ 
+/* Ícone de sucesso no modal */
+.modal-success-icon {
+    font-size: 60px;
+    color: var(--secondary-color);
+    margin-bottom: 20px;
+}
+ 
+/* Subtítulo descritivo no modal */
+.modal-subtitle {
+    margin-top: 10px;
+    color: #666666;
+}
+/* ============================================
+   Relatórios — relatorios.html
+   ============================================ */
+
+/* Botão de exportar PDF (vermelho) */
+.btn-danger {
+    background-color: #dc3545;
+    color: var(--white);
+}
+
+.btn-danger:hover {
+    background-color: #b02a37;
+}
+
+/* Espaçamento superior da tabela de histórico */
+.report-table {
+    margin-top: 20px;
+}
+
+/* Labels de tipo de operação na tabela */
+.op-sale {
+    color: #2e7d32;
+    font-weight: 600;
+}
+
+.op-entry {
+    color: #1565c0;
+    font-weight: 600;
+}
+
+/* Container branco do modal (card central) */
+.modal-card {
+    background-color: var(--white);
+    border-radius: 12px;
+    padding: 30px;
+    width: 100%;
+    max-width: 500px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+/* ============================================
+   Vendas — vendas.html (inline styles removidos)
+   ============================================ */
+ 
+/* Campo de formulário com margem interna no modal de quantidade */
+.modal-form-field {
+    margin: 20px 0;
+}
+ 
+/* Item de total no resumo da venda — destaque em tamanho e espaçamento */
+.summary-item-total {
+    font-size: 18px;
+    margin-top: 10px;
+}
+ 
+/* Valor do total no resumo — cor de sucesso e negrito */
+.summary-total-value {
+    color: var(--secondary-color);
+    font-weight: 700;
+}\n/* Comprovante Print CSS */\n@media print {\n  body * { visibility: hidden; }\n  .print-receipt-container, .print-receipt-container * { visibility: visible; }\n  .print-receipt-container { position: absolute; left: 0; top: 0; width: 100%; }\n  .modal-overlay, .sidebar, .topbar { display: none !important; }\n}\n
+/* Badge de Notifica��es na Sidebar */
+.nav-badge {
+    background-color: #ef4444;
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    min-width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: auto;
+    padding: 0 4px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* Modo de Impress�o (Gera��o de PDF do Comprovante) */
+@media print {
+    body {
+        background: white !important;
+        margin: 0;
+        padding: 0;
+    }
+    
+    .sidebar, .header, .filters-bar, .table-container, .btn, .modal-title, .modal-actions {
+        display: none !important;
+    }
+    
+    .modal-overlay {
+        background: white !important;
+        position: static !important;
+        display: block !important;
+        height: auto !important;
+    }
+    
+    .modal-card {
+        box-shadow: none !important;
+        max-width: 100% !important;
+        width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    
+    .print-receipt-container {
+        display: block !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    /* For�ar cores na impress�o */
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+}
+
+
+/* Novas Estiliza��es de Filtro */
+.filters-bar { flex-wrap: wrap !important; }
+.filter-date-group { display: flex; align-items: center; gap: 8px; padding-left: 12px; border-left: 1px solid #eee; }
+

@@ -1,0 +1,63 @@
+services:
+  # Servidor Web Caddy (HTTPS Automático)
+  caddy:
+    build:
+      context: .
+      dockerfile: Dockerfile.caddy
+    container_name: superbr-gateway
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+      - backend
+
+  # Banco de Dados PostgreSQL
+  db:
+    image: postgres:15-alpine
+    container_name: superbr-db
+    restart: always
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # Backend Go
+  backend:
+    build: ./backend
+    container_name: superbr-api
+    restart: always
+    depends_on:
+      - db
+    environment:
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+      - SERVER_PORT=8080
+      - JWT_SECRET=${JWT_SECRET}
+      - SUPERADMIN_LOGIN=${SUPERADMIN_LOGIN}
+      - SUPERADMIN_PASSWORD=${SUPERADMIN_PASSWORD}
+      - ALLOWED_ORIGIN=${ALLOWED_ORIGIN}
+    volumes:
+      - ./backend/storage:/app/storage
+
+  # Frontend React (Nginx)
+  frontend:
+    build: ./frontend
+    container_name: superbr-web
+    restart: always
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:
