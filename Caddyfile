@@ -1,5 +1,5 @@
-# Sistema de Gestão (Template de Exemplo)
-admin.seu-dominio.com.br {
+# Sistema de Gestão SuperBR Dinâmico
+{$DOMAIN_NAME} {
     encode gzip zstd
 
     # Proxy para as chamadas de API do Backend
