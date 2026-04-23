@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"strconv"
 
+	"strings"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -118,6 +120,11 @@ func (h *Handler) Deletar(c *gin.Context) {
 	}
 
 	if err := h.service.Deletar(uint(id)); err != nil {
+		// Verifica se o erro é de integridade referencial (SQLSTATE 23503 no Postgres)
+		if strings.Contains(err.Error(), "23503") {
+			c.JSON(http.StatusConflict, gin.H{"erro": "Não é possível excluir este produto pois ele possui itens em estoque ou histórico de movimentações vinculado."})
+			return
+		}
 		c.JSON(http.StatusBadRequest, gin.H{"erro": err.Error()})
 		return
 	}
