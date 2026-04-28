@@ -54,7 +54,8 @@ function Relatorios() {
 
       const totalVendasConcluidas = resumoData.por_status?.concluida || 0 
       const totalSucata = resumoData.por_pagamento?.sucata || 0
-      const totalFaturadoBruto = (resumoData.total_recebido || 0) - totalSucata
+      const totalTroco = resumoData.total_troco_real || 0
+      const totalFaturadoBruto = (resumoData.total_recebido || 0) - totalSucata - totalTroco
       const totalItensVendidos = resumoData.quantidade_itens || 0
       const totalServicos = resumoData.total_servicos || 0
       const faturamentoReal = (resumoData.total_produtos || 0) + totalServicos

@@ -283,7 +283,7 @@ func (s *Service) GerarPDFVendas(resumo *ResumoVenda) (*gofpdf.Fpdf, error) {
 	curX += cardW + cardGap
 	s.desenharCard(pdf, curX, 45, cardW, 22, tr("TROCO REAL"), formatarMoedaBRL(resumo.TotalTrocoReal), 220, 53, 69) // Vermelho
 	curX += cardW + cardGap
-	s.desenharCard(pdf, curX, 45, cardW, 22, tr("REC. LÍQUIDA"), formatarMoedaBRL(resumo.ReceitaLiquida), 40, 167, 69) // Verde
+	s.desenharCard(pdf, curX, 45, cardW, 22, tr("FATURAMENTO BRUTO"), formatarMoedaBRL(resumo.ReceitaLiquida), 40, 167, 69) // Verde
 
 	pdf.Ln(32)
 
@@ -306,6 +306,12 @@ func (s *Service) GerarPDFVendas(resumo *ResumoVenda) (*gofpdf.Fpdf, error) {
 	pdf.CellFormat(colLabel, altLinha, tr("(+) Total Bruto em Serviços Prestados"), "B", 0, "L", false, 0, "")
 	pdf.CellFormat(colVal, altLinha, formatarMoedaBRL(resumo.TotalServicos), "B", 1, "R", false, 0, "")
 
+	pdf.SetFont("Arial", "B", 10)
+	pdf.CellFormat(colLabel, altLinha, tr("(=) FATURAMENTO LÍQUIDO DE VENDAS (Prod + Serv)"), "B", 0, "L", false, 0, "")
+	pdf.CellFormat(colVal, altLinha, formatarMoedaBRL(resumo.TotalProdutos+resumo.TotalServicos), "B", 1, "R", false, 0, "")
+	pdf.SetFont("Arial", "", 10)
+	pdf.Ln(2)
+
 	pdf.CellFormat(colLabel, altLinha, tr("(+) Entradas Brutas em Caixa (Recebido Total)"), "B", 0, "L", false, 0, "")
 	pdf.CellFormat(colVal, altLinha, formatarMoedaBRL(resumo.TotalRecebido), "B", 1, "R", false, 0, "")
 
@@ -316,8 +322,8 @@ func (s *Service) GerarPDFVendas(resumo *ResumoVenda) (*gofpdf.Fpdf, error) {
 
 	pdf.SetFont("Arial", "B", 11)
 	pdf.SetFillColor(240, 240, 240)
-	pdf.CellFormat(colLabel, altLinha+2, tr("(=) TOTAL LÍQUIDO NO CAIXA (Soma das Contas e Gaveta)"), "TB", 0, "L", true, 0, "")
-	pdf.CellFormat(colVal, altLinha+2, formatarMoedaBRL(resumo.ReceitaLiquida), "TB", 1, "R", true, 0, "")
+	pdf.CellFormat(150, 8, "(=) FATURAMENTO BRUTO NO CAIXA (Saldo de Entradas)", "1", 0, "L", true, 0, "")
+	pdf.CellFormat(40, 8, formatarMoedaBRL(resumo.ReceitaLiquida), "1", 1, "R", true, 0, "")
 	pdf.SetFont("Arial", "", 10)
 
 	pdf.Ln(8)
