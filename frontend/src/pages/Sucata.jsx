@@ -13,6 +13,7 @@ function Sucata() {
   const [modalMode, setModalMode] = useState('entrada') // entrada, editar
   const [formData, setFormData] = useState({
     produtoId: '',
+    descricao: '',
     peso: '',
     vendaId: '',
     estado: 'disponivel',
@@ -90,14 +91,15 @@ function Sucata() {
     setModalMode(mode)
     if (sucataItem) {
       setFormData({ 
-        produtoId: sucataItem.produto_id.toString(),
+        produtoId: sucataItem.produto_id ? sucataItem.produto_id.toString() : '',
+        descricao: sucataItem.descricao || '',
         peso: sucataItem.peso.toString(), 
         vendaId: sucataItem.venda_id ? sucataItem.venda_id.toString() : '',
         estado: sucataItem.estado, 
         sucataId: sucataItem.id 
       })
     } else {
-      setFormData({ produtoId: '', peso: '', vendaId: '', estado: 'disponivel', sucataId: null })
+      setFormData({ produtoId: '', descricao: '', peso: '', vendaId: '', estado: 'disponivel', sucataId: null })
     }
     setShowModal(true)
   }
@@ -109,13 +111,22 @@ function Sucata() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!formData.produtoId || !formData.peso) {
-      alert('Selecione uma bateria e informe o peso.')
+    
+    // Se não tem produtoId, obriga a ter descrição
+    if (!formData.produtoId && !formData.descricao.trim()) {
+      alert('Selecione uma bateria ou escreva um nome/descrição para a sucata.')
       return
     }
+
+    if (!formData.peso) {
+      alert('Informe o peso da sucata.')
+      return
+    }
+
     try {
       const payload = {
-        produtoId: parseInt(formData.produtoId),
+        produtoId: formData.produtoId ? parseInt(formData.produtoId) : null,
+        descricao: formData.descricao,
         peso: parseFloat(formData.peso.toString().replace(',', '.')),
         vendaId: formData.vendaId ? parseInt(formData.vendaId) : null,
         estado: formData.estado
@@ -131,6 +142,20 @@ function Sucata() {
     } catch (err) {
       console.error('Erro ao salvar:', err)
       alert(err.message || 'Erro ao realizar operação')
+    }
+  }
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Tem certeza que deseja excluir este lote de sucata? Esta ação não pode ser desfeita.')) {
+      return
+    }
+
+    try {
+      await sucataService.deletarLote(id)
+      loadData()
+    } catch (err) {
+      console.error('Erro ao excluir:', err)
+      alert(err.message || 'Erro ao excluir lote')
     }
   }
 
@@ -203,6 +228,8 @@ function Sucata() {
           >
             <option value="">Situação (Todas)</option>
             <option value="disponivel">Disponível</option>
+            <option value="aguardando_venda">Aguardando Venda</option>
+            <option value="reembolsada">Reembolsada</option>
             <option value="fora_de_estoque">Fora de Estoque</option>
           </select>
           <div style={{ display: 'flex', gap: '5px', alignItems: 'center', backgroundColor: '#f8fafc', padding: '2px 10px', borderRadius: '6px', border: '1px solid #e2e8f0', height: '38px' }}>
@@ -261,8 +288,16 @@ function Sucata() {
                 <tr key={index}>
                   <td style={{ fontWeight: 'bold' }}>#{item.id}</td>
                   <td>
-                    <strong>{item.produto?.nome || 'Produto Indefinido'}</strong>
-                    {item.produto?.categoria && <span style={{fontSize: '0.85em', color: '#64748b', marginLeft: '6px', fontWeight: '500'}}>[{item.produto.categoria}]</span>}
+                    {item.produto && item.produto.id ? (
+                      <>
+                        <strong>{item.produto.nome}</strong>
+                        {item.produto.categoria && <span style={{fontSize: '0.85em', color: '#64748b', marginLeft: '6px', fontWeight: '500'}}>[{item.produto.categoria}]</span>}
+                      </>
+                    ) : (
+                      <span style={{ color: '#111827', fontWeight: '600' }}>
+                        {item.descricao || '(Sem nome definido)'}
+                      </span>
+                    )}
                   </td>
                   <td>
                     {item.venda_id ? (
@@ -272,8 +307,16 @@ function Sucata() {
                     )}
                   </td>
                   <td>
-                    <span className={`badge ${item.estado === 'disponivel' ? 'badge-success' : 'badge-danger'}`}>
-                      {item.estado === 'disponivel' ? 'Disponível' : 'Fora de Estoque'}
+                    <span className={`badge ${
+                      item.estado === 'disponivel' ? 'badge-success' : 
+                      item.estado === 'aguardando_venda' ? 'badge-warning' : 
+                      item.estado === 'reembolsada' ? 'badge-danger' :
+                      'badge-danger'
+                    }`}>
+                      {item.estado === 'disponivel' ? 'Disponível' : 
+                       item.estado === 'aguardando_venda' ? 'Aguardando Venda' : 
+                       item.estado === 'reembolsada' ? 'Reembolsada' :
+                       'Fora de Estoque'}
                     </span>
                   </td>
                   <td>{item.peso?.toFixed(2)}</td>
@@ -281,14 +324,24 @@ function Sucata() {
                   <td><span style={{ fontWeight: 'bold' }}>{item.estado === 'disponivel' ? formatCurrency(item.valor_total) : 'R$ 0,00'}</span></td>
                   <td>
                     {canManage && (
-                      <button
-                        type="button"
-                        className="action-btn action-btn-edit"
-                        onClick={() => handleOpenModal('editar', item)}
-                        title="Editar Lote"
-                      >
-                        <FaEdit />
-                      </button>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button
+                          type="button"
+                          className="action-btn action-btn-edit"
+                          onClick={() => handleOpenModal('editar', item)}
+                          title="Editar Lote"
+                        >
+                          <FaEdit />
+                        </button>
+                        <button
+                          type="button"
+                          className="action-btn action-btn-delete"
+                          onClick={() => handleDelete(item.id)}
+                          title="Excluir Lote"
+                        >
+                          <FaTrash />
+                        </button>
+                      </div>
                     )}
                   </td>
                 </tr>
@@ -306,21 +359,47 @@ function Sucata() {
             </h3>
             <form onSubmit={handleSubmit}>
               <div className="form-group">
-                <label>Selecionar Bateria / Modelo *</label>
-                <select
-                  className="filter-input-full"
-                  value={formData.produtoId}
-                  onChange={(e) => setFormData({ ...formData, produtoId: e.target.value })}
-                  required
-                >
-                  <option value="">Selecione o modelo do catálogo</option>
-                  {produtos.map((prod) => (
-                    <option key={prod.id} value={prod.id}>
-                      [{prod.categoria || 'S/C'}] {prod.nome}
-                    </option>
-                  ))}
-                </select>
+                <label>Selecionar Bateria / Modelo (Opcional)</label>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <select
+                    className="filter-input-full"
+                    value={formData.produtoId}
+                    onChange={(e) => setFormData({ ...formData, produtoId: e.target.value })}
+                    style={{ flex: 1 }}
+                  >
+                    <option value="">Nenhum (Entrada Manual)</option>
+                    {produtos.map((prod) => (
+                      <option key={prod.id} value={prod.id}>
+                        [{prod.categoria || 'S/C'}] {prod.nome}
+                      </option>
+                    ))}
+                  </select>
+                  {formData.produtoId && (
+                    <button 
+                      type="button" 
+                      className="btn btn-cancel" 
+                      onClick={() => setFormData({ ...formData, produtoId: '' })}
+                      title="Remover seleção"
+                      style={{ padding: '0 15px' }}
+                    >
+                      <FaTrash />
+                    </button>
+                  )}
+                </div>
               </div>
+
+              {!formData.produtoId && (
+                <div className="form-group" style={{ marginTop: '1rem' }}>
+                  <label>Nome / Descrição da Sucata *</label>
+                  <input
+                    type="text"
+                    placeholder="Ex: Bateria Tracionária 45Ah"
+                    value={formData.descricao}
+                    onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
+                    required={!formData.produtoId}
+                  />
+                </div>
+              )}
               
               <div className="form-group">
                 <label>Peso (KG) *</label>
@@ -348,14 +427,15 @@ function Sucata() {
 
               {modalMode === 'editar' && (
                 <div className="form-group" style={{ marginTop: '1rem' }}>
-                  <label>Situação do Lote *</label>
-                  <select
+                  <label>Situação / Estado do Lote</label>
+                  <select 
                     className="filter-input-full"
-                    value={formData.estado}
-                    onChange={(e) => setFormData({ ...formData, estado: e.target.value })}
-                    required
+                    value={formData.estado} 
+                    onChange={(e) => setFormData({...formData, estado: e.target.value})}
                   >
                     <option value="disponivel">Disponível</option>
+                    <option value="aguardando_venda">Aguardando Venda</option>
+                    <option value="reembolsada">Reembolsada</option>
                     <option value="fora_de_estoque">Fora de Estoque</option>
                   </select>
                 </div>

@@ -51,7 +51,7 @@ func main() {
 	servicoService := servico.NewService(servicoRepo, notifService)
 	estoqueService := estoque.NewService(estoqueRepo, produtoRepo, movRepo, notifService, configService)
 	sucataService := sucata.NewService(sucataRepo, movSucataRepo, configService)
-	vendaService := venda.NewService(vendaRepo, estoqueRepo, produtoRepo, movRepo, notifService, estoqueService)
+	vendaService := venda.NewService(vendaRepo, estoqueRepo, produtoRepo, movRepo, notifService, estoqueService, sucataService)
 	movimentacaoService := movimentacao.NewService(movRepo)
 	movSucataService := movs.NewService(movSucataRepo)
 	dashboardService := dashboard.NewService(estoqueRepo, vendaRepo, movRepo)
@@ -146,6 +146,7 @@ func main() {
 		protected.GET("/sucata/:id", sucataHandler.BuscarPorID)
 		protected.POST("/sucata/entrada", middleware.ExigirPerfil("admin", "gerente"), sucataHandler.EntradaSucata)
 		protected.PUT("/sucata/lotes/:id", middleware.ExigirPerfil("admin", "gerente"), sucataHandler.EditarLote)
+		protected.DELETE("/sucata/lotes/:id", middleware.ExigirPerfil("admin", "gerente"), sucataHandler.DeletarLote)
 
 		// Vendas
 		protected.POST("/vendas", middleware.ExigirPerfil("admin", "gerente", "vendas"), vendaHandler.CriarVenda)

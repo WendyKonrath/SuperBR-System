@@ -32,38 +32,52 @@ func (s *Service) BuscarPorID(id uint) (*EstoqueSucata, error) {
 	return s.repo.BuscarPorID(id)
 }
 
-// EntradaSucata registra a chegada de unidades de sucata gerando um NOVO lote vinculado a um ProdutoID.
-func (s *Service) EntradaSucata(produtoID uint, peso float64, vendaID *uint, usuarioID uint) (*EstoqueSucata, error) {
+// EntradaSucata registra a chegada de unidades de sucata gerando um NOVO lote.
+// tx é opcional; se nil, usa a conexão padrão. estado é opcional; se vazio, usa "disponivel".
+func (s *Service) EntradaSucata(tx *gorm.DB, produtoID *uint, descricao string, peso float64, vendaID *uint, usuarioID uint, estado string) (*EstoqueSucata, error) {
 	if peso <= 0 {
 		return nil, errors.New("peso de entrada deve ser maior que zero")
+	}
+
+	if produtoID == nil && descricao == "" {
+		return nil, errors.New("informe o modelo ou uma descrição manual")
+	}
+
+	if estado == "" {
+		estado = "disponivel"
+	}
+
+	if tx == nil {
+		tx = s.repo.DB()
 	}
 
 	precoGlobal := s.config.GetPrecoSucataKg()
 	sucata := &EstoqueSucata{
 		ProdutoID:  produtoID,
+		Descricao:  descricao,
 		Peso:       peso,
 		VendaID:    vendaID,
 		PrecoPorKg: precoGlobal,
 		ValorTotal: peso * precoGlobal,
-		Estado:     "disponivel",
+		Estado:     estado,
 	}
 
-	err := s.repo.DB().Transaction(func(tx *gorm.DB) error {
-		if errCreate := tx.Create(sucata).Error; errCreate != nil {
+	err := tx.Transaction(func(itx *gorm.DB) error {
+		if errCreate := itx.Create(sucata).Error; errCreate != nil {
 			return errCreate
 		}
-		return s.movRepo.Registrar(tx, sucata.ID, usuarioID, "entrada_sucata", peso)
+		return s.movRepo.Registrar(itx, sucata.ID, usuarioID, "entrada_sucata", peso)
 	})
 
 	if err != nil {
-		return nil, errors.New("erro ao registrar entrada de sucata")
+		return nil, errors.New("erro ao registrar entrada de sucata: " + err.Error())
 	}
 
-	return s.repo.BuscarPorID(sucata.ID)
+	return sucata, nil
 }
 
-// EditarLote atualiza o peso e estado do lote e cria registros de movimentação calculando a diferença matemática.
-func (s *Service) EditarLote(id uint, novoPeso float64, novoProdutoID uint, novoVendaID *uint, novoEstado string, usuarioID uint) (*EstoqueSucata, error) {
+// EditarLote atualiza o peso e estado do lote e cria registros de movimentação.
+func (s *Service) EditarLote(id uint, novoPeso float64, novoProdutoID *uint, novaDescricao string, novoVendaID *uint, novoEstado string, usuarioID uint) (*EstoqueSucata, error) {
 	if novoPeso < 0 {
 		return nil, errors.New("peso não pode ser negativo")
 	}
@@ -77,14 +91,11 @@ func (s *Service) EditarLote(id uint, novoPeso float64, novoProdutoID uint, novo
 		estadoAnterior := sucata.Estado
 		pesoAnterior := sucata.Peso
 
-		sucata.ProdutoID = novoProdutoID
-		sucata.VendaID = novoVendaID
-		sucata.Peso = novoPeso
-		sucata.Estado = novoEstado
+		// Usamos SQL puro para garantir que o NULL seja processado corretamente pelo driver do banco
+		err := tx.Exec("UPDATE estoque_sucatas SET produto_id = ?, descricao = ?, peso = ?, venda_id = ?, estado = ?, valor_total = ? WHERE id = ?", 
+			novoProdutoID, novaDescricao, novoPeso, novoVendaID, novoEstado, novoPeso * sucata.PrecoPorKg, id).Error
 		
-		sucata.ValorTotal = sucata.Peso * sucata.PrecoPorKg
-
-		if err := tx.Save(sucata).Error; err != nil {
+		if err != nil {
 			return err
 		}
 

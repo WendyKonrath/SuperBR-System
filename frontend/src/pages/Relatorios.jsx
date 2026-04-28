@@ -21,9 +21,12 @@ function Relatorios() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [stats, setStats] = useState({
-    totalVendas: 0,
-    totalPago: 0,
-    produtosVendidos: 0,
+    faturamentoLiquido: 0,
+    itensVendidos: 0,
+    totalServicos: 0,
+    faturamentoBruto: 0,
+    totalSucata: 0,
+    estoqueGeral: 0,
     mediaVenda: 0
   })
   const [vendas, setVendas] = useState([])
@@ -49,19 +52,24 @@ function Relatorios() {
       setResumoVendas(resumoData)
       setVendas(Array.isArray(resumoData.vendas) ? resumoData.vendas : [])
 
-      const totalVendas = resumoData.total_produtos || 0 
-      const totalRecebido = resumoData.receita_liquida || 0 
+      const totalVendasConcluidas = resumoData.por_status?.concluida || 0 
+      const totalSucata = resumoData.por_pagamento?.sucata || 0
+      const totalFaturadoBruto = (resumoData.total_recebido || 0) - totalSucata
+      const totalItensVendidos = resumoData.quantidade_itens || 0
+      const totalServicos = resumoData.total_servicos || 0
+      const faturamentoReal = (resumoData.total_produtos || 0) + totalServicos
       const estoqueAtual = resumoData.total_itens_estoque || 0
       
-      // Ticket médio baseado apenas em vendas concluídas
-      const vendasConcluidas = resumoData.vendas?.filter(v => v.status === 'concluida') || []
-      const mediaVenda = vendasConcluidas.length > 0 ? totalRecebido / vendasConcluidas.length : 0
+      const mediaVenda = totalVendasConcluidas > 0 ? totalFaturadoBruto / totalVendasConcluidas : 0
 
       setStats({
-        totalVendas,
-        totalPago: totalRecebido,
-        produtosVendidos: estoqueAtual,
-        mediaVenda
+        faturamentoLiquido: faturamentoReal,
+        itensVendidos: totalItensVendidos,
+        totalServicos: totalServicos,
+        faturamentoBruto: totalFaturadoBruto,
+        totalSucata: totalSucata,
+        estoqueGeral: estoqueAtual,
+        mediaVenda: mediaVenda
       })
     } catch (err) {
       console.error('Erro ao carregar dados:', err)
@@ -164,10 +172,10 @@ function Relatorios() {
   }
 
   const statsData = [
-    { icon: 'fa-shopping-cart', bgClass: 'bg-blue-light', title: 'Total em Vendas (Bruto)', value: formatCurrency(stats.totalVendas) },
-    { icon: 'fa-money-bill-trend-up', bgClass: 'bg-green-light', title: 'Faturamento Líquido', value: formatCurrency(stats.totalPago) },
-    { icon: 'fa-boxes-packing', bgClass: 'bg-orange-light', title: 'Total em Estoque', value: `${stats.produtosVendidos} un` },
-    { icon: 'fa-chart-line', bgClass: 'bg-purple-light', title: 'Ticket Médio (Líq)', value: formatCurrency(stats.mediaVenda) },
+    { icon: 'fa-shopping-cart', bgClass: 'bg-blue-light', title: 'Faturamento Bruto (Caixa)', value: formatCurrency(stats.faturamentoBruto) },
+    { icon: 'fa-recycle', bgClass: 'bg-orange-light', title: 'Abatimento (Sucata)', value: formatCurrency(stats.totalSucata) },
+    { icon: 'fa-boxes-packing', bgClass: 'bg-green-light', title: 'Saldo em Estoque', value: `${stats.estoqueGeral} un` },
+    { icon: 'fa-chart-line', bgClass: 'bg-purple-light', title: 'Ticket Médio', value: formatCurrency(stats.mediaVenda) },
   ]
 
   const today = new Date().toISOString().split('T')[0]
@@ -180,26 +188,26 @@ function Relatorios() {
             <i className="fas fa-hand-holding-usd"></i>
           </div>
           <div className="stat-info">
-            <h3>Receita Líquida</h3>
-            <p>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.totalPago)}</p>
+            <h3>Faturamento Líquido</h3>
+            <p>{formatCurrency(stats.faturamentoLiquido)}</p>
           </div>
         </div>
         <div className="card stat-card">
           <div className="stat-icon bg-blue-light">
-            <i className="fas fa-shopping-cart"></i>
+            <i className="fas fa-battery-full"></i>
           </div>
           <div className="stat-info">
             <h3>Itens Vendidos</h3>
-            <p>{stats.totalVendas} un</p>
+            <p>{stats.itensVendidos} un</p>
           </div>
         </div>
         <div className="card stat-card">
           <div className="stat-icon bg-purple-light">
-            <i className="fas fa-chart-line"></i>
+            <i className="fas fa-tools"></i>
           </div>
           <div className="stat-info">
-            <h3>Ticket Médio</h3>
-            <p>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.mediaVenda)}</p>
+            <h3>Total em Serviços</h3>
+            <p>{formatCurrency(stats.totalServicos)}</p>
           </div>
         </div>
       </div>
@@ -304,18 +312,21 @@ function Relatorios() {
               </tr>
             ) : (
               vendas.map((venda) => {
-                const fatLiquido = venda.status === 'concluida' ? (venda.valor_total - venda.troco_devolvido) : 0
+                const fatLiquido = venda.status === 'concluida' ? (venda.valor_total) : 0
+                const totalPagoBruto = venda.pagamentos?.reduce((acc, p) => acc + p.valor, 0) || 0
                 return (
                   <tr key={venda.id}>
                     <td style={{ color: '#64748b', fontWeight: 'bold' }}>#{venda.id}</td>
                     <td>{formatDate(venda.data)}</td>
                     <td>{venda.nome_cliente || 'Final de Consumidor'}</td>
                     <td style={{ fontWeight: '500' }}>{venda.usuario?.nome || 'Sistema'}</td>
-                    <td style={{ color: '#64748b' }}>{formatCurrency(venda.valor_total)}</td>
-                    <td style={{ color: '#16a34a', fontWeight: '600' }}>{formatCurrency(fatLiquido)}</td>
+                    <td style={{ color: '#64748b' }}>{formatCurrency(totalPagoBruto)}</td>
+                    <td style={{ color: '#16a34a', fontWeight: '600' }}>{formatCurrency(venda.valor_total)}</td>
                     <td>
-                      <span className={`badge ${venda.status === 'concluida' ? 'badge-success' : venda.status === 'reembolsada' || venda.status === 'reembolsado' || venda.status === 'devolvida' ? 'badge-danger' : 'badge-warning'}`}>
-                        {venda.status === 'concluida' ? 'Concluída' : venda.status === 'reembolsada' || venda.status === 'reembolsado' || venda.status === 'devolvida' ? 'Reembolsada' : 'Pendente'}
+                      <span className={`badge ${venda.status === 'concluida' ? 'badge-success' : (venda.status === 'cancelada' || venda.status === 'reembolsada' || venda.status === 'reembolsado' || venda.status === 'devolvida' ? 'badge-danger' : 'badge-warning')}`}>
+                        {venda.status === 'concluida' ? 'Concluída' : 
+                         venda.status === 'cancelada' ? 'Cancelada' :
+                         (venda.status === 'reembolsada' || venda.status === 'reembolsado' || venda.status === 'devolvida') ? 'Reembolsada' : 'Pendente'}
                       </span>
                     </td>
                     <td style={{ textAlign: 'center' }}>

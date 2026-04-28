@@ -9,8 +9,9 @@ import (
 // Agora vinculado diretamente a um Produto do catálogo para evitar erros de texto.
 type EstoqueSucata struct {
 	ID         uint            `gorm:"primaryKey;autoIncrement" json:"id"`
-	ProdutoID  uint            `gorm:"not null" json:"produto_id"`
+	ProdutoID  *uint           `json:"produto_id"`
 	Produto    produto.Produto `gorm:"foreignKey:ProdutoID" json:"produto,omitempty"`
+	Descricao  string          `gorm:"type:varchar(200)" json:"descricao"`
 	Peso       float64         `gorm:"type:decimal(10,2);not null;default:0" json:"peso"`
 	PrecoPorKg float64         `gorm:"type:decimal(10,2);not null;default:3.0" json:"preco_por_kg"`
 	ValorTotal float64         `gorm:"type:decimal(10,2);not null;default:0" json:"valor_total"`

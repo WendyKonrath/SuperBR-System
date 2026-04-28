@@ -39,6 +39,13 @@ type pagamentoVendaInput struct {
 	Valor float64 `json:"valor" binding:"required,gt=0"`
 }
 
+// sucataAbatimentoVendaInput representa um item de sucata recebido na venda.
+type sucataAbatimentoVendaInput struct {
+	ProdutoID *uint   `json:"produto_id"`
+	Descricao string  `json:"descricao"`
+	Peso      float64 `json:"peso" binding:"required,gt=0"`
+}
+
 // criarVendaInput representa o corpo completo da requisição de criação de venda.
 // Observacoes é opcional — aparece no campo "Observações" do comprovante PDF.
 type criarVendaInput struct {
@@ -49,8 +56,9 @@ type criarVendaInput struct {
 	Observacoes      string                `json:"observacoes"`
 	Itens            []itemVendaInput      `json:"itens" binding:"omitempty,dive"`
 	Servicos         []servicoVendaInput   `json:"servicos" binding:"omitempty,dive"`
-	Pagamentos       []pagamentoVendaInput `json:"pagamentos" binding:"omitempty,dive"`
-	TrocoDevolvido   float64               `json:"troco_devolvido"`
+	Pagamentos       []pagamentoVendaInput        `json:"pagamentos" binding:"omitempty,dive"`
+	SucatasAbatimento []sucataAbatimentoVendaInput `json:"sucatas_abatimento" binding:"omitempty,dive"`
+	TrocoDevolvido   float64                      `json:"troco_devolvido"`
 }
 
 // traduzirErroBinding converte mensagens técnicas do validator em mensagens amigáveis.
@@ -125,6 +133,11 @@ func (h *Handler) CriarVenda(c *gin.Context) {
 		pags[i] = pagamentoInput{Tipo: pg.Tipo, Valor: pg.Valor}
 	}
 
+	sucatasAbatimento := make([]sucataAbatimentoInput, len(input.SucatasAbatimento))
+	for i, sct := range input.SucatasAbatimento {
+		sucatasAbatimento[i] = sucataAbatimentoInput{ProdutoID: sct.ProdutoID, Descricao: sct.Descricao, Peso: sct.Peso}
+	}
+
 	v, err := h.service.CriarVenda(
 		input.NomeCliente,
 		input.Empresa,
@@ -134,6 +147,7 @@ func (h *Handler) CriarVenda(c *gin.Context) {
 		itens,
 		servicos,
 		pags,
+		sucatasAbatimento,
 		usuarioID.(uint),
 		input.TrocoDevolvido,
 	)
@@ -177,6 +191,11 @@ func (h *Handler) AtualizarVenda(c *gin.Context) {
 		pags[i] = pagamentoInput{Tipo: pg.Tipo, Valor: pg.Valor}
 	}
 
+	sucatasAbatimento := make([]sucataAbatimentoInput, len(input.SucatasAbatimento))
+	for i, sct := range input.SucatasAbatimento {
+		sucatasAbatimento[i] = sucataAbatimentoInput{ProdutoID: sct.ProdutoID, Descricao: sct.Descricao, Peso: sct.Peso}
+	}
+
 	v, err := h.service.AtualizarVenda(
 		uint(id),
 		input.NomeCliente,
@@ -187,6 +206,7 @@ func (h *Handler) AtualizarVenda(c *gin.Context) {
 		itens,
 		servicos,
 		pags,
+		sucatasAbatimento,
 		usuarioID.(uint),
 		input.TrocoDevolvido,
 	)

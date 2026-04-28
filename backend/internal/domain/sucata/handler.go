@@ -18,13 +18,15 @@ func NewHandler(service *Service) *Handler {
 }
 
 type entradaSucataInput struct {
-	ProdutoID uint    `json:"produto_id"`
+	ProdutoID *uint   `json:"produto_id"`
+	Descricao string  `json:"descricao"`
 	Peso      float64 `json:"peso" binding:"gt=0"`
 	VendaID   *uint   `json:"venda_id"`
 }
 
 type editarLoteInput struct {
-	ProdutoID uint    `json:"produto_id"`
+	ProdutoID *uint   `json:"produto_id"`
+	Descricao string  `json:"descricao"`
 	Peso      float64 `json:"peso" binding:"min=0"`
 	VendaID   *uint   `json:"venda_id"`
 	Estado    string  `json:"estado" binding:"required"`
@@ -40,8 +42,7 @@ func (h *Handler) EntradaSucata(c *gin.Context) {
 	}
 
 	usuarioID, _ := c.Get("usuario_id")
-
-	sucata, err := h.service.EntradaSucata(input.ProdutoID, input.Peso, input.VendaID, usuarioID.(uint))
+	sucata, err := h.service.EntradaSucata(nil, input.ProdutoID, input.Descricao, input.Peso, input.VendaID, usuarioID.(uint), "")
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"erro": err.Error()})
 		return
@@ -67,7 +68,7 @@ func (h *Handler) EditarLote(c *gin.Context) {
 
 	usuarioID, _ := c.Get("usuario_id")
 
-	sucata, err := h.service.EditarLote(uint(id), input.Peso, input.ProdutoID, input.VendaID, input.Estado, usuarioID.(uint))
+	sucata, err := h.service.EditarLote(uint(id), input.Peso, input.ProdutoID, input.Descricao, input.VendaID, input.Estado, usuarioID.(uint))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"erro": err.Error()})
 		return
@@ -104,4 +105,21 @@ func (h *Handler) BuscarPorID(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, sucata)
+}
+
+// DeletarLote remove um lote de sucata do sistema.
+// DELETE /api/sucata/lotes/:id
+func (h *Handler) DeletarLote(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"erro": "id inválido"})
+		return
+	}
+
+	if err := h.service.DeletarLote(uint(id)); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"erro": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"mensagem": "lote excluído com sucesso"})
 }

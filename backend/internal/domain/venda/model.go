@@ -4,6 +4,7 @@ package venda
 import (
 	"super-br/internal/domain/estoque"
 	"super-br/internal/domain/servico"
+	"super-br/internal/domain/sucata"
 	"super-br/internal/domain/usuario"
 	"time"
 )
@@ -33,6 +34,7 @@ type Venda struct {
 	Itens            []ItemVenda        `gorm:"foreignKey:VendaID" json:"itens"`
 	Servicos         []ItemServicoVenda `gorm:"foreignKey:VendaID" json:"servicos"`
 	Pagamentos       []Pagamento        `gorm:"foreignKey:VendaID" json:"pagamentos"`
+	Sucatas          []sucata.EstoqueSucata `gorm:"foreignKey:VendaID" json:"sucatas"`
 	ValorPago        float64         `gorm:"-" json:"valor_pago"` // Total recebido
 	Troco            float64         `gorm:"-" json:"troco"`       // Diferença calculada
 	TrocoDevolvido   float64         `gorm:"type:decimal(10,2);not null;default:0" json:"troco_devolvido"` // Valor efetivamente entregue

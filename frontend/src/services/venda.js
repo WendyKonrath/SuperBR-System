@@ -20,7 +20,8 @@ export const vendaService = {
       troco_devolvido: data.troco_devolvido || 0,
       itens: data.itens,
       servicos: data.servicos || [],
-      pagamentos: data.pagamentos || []
+      pagamentos: data.pagamentos || [],
+      sucatas_abatimento: data.sucatas_abatimento || []
     });
   },
 
@@ -34,7 +35,8 @@ export const vendaService = {
       troco_devolvido: data.troco_devolvido || 0,
       itens: data.itens,
       servicos: data.servicos || [],
-      pagamentos: data.pagamentos || []
+      pagamentos: data.pagamentos || [],
+      sucatas_abatimento: data.sucatas_abatimento || []
     });
   },
 

@@ -132,9 +132,10 @@ type ResumoVenda struct {
 	TotalRecebido  float64             `json:"total_recebido"`   // O que o cliente entregou total
 	TotalTrocoReal float64             `json:"total_troco_real"` // O que saiu de troco na prática
 	ReceitaLiquida     float64             `json:"receita_liquida"`  // O que ficou no caixa (Recebido - Troco)
-	TotalItensEstoque  int                 `json:"total_itens_estoque"` // Novo: Saldo atual do estoque (Geral)
+	TotalItensEstoque  int                 `json:"total_itens_estoque"` // Saldo atual do estoque (Geral)
+	QuantidadeItens    int                 `json:"quantidade_itens"`    // Total de unidades físicas vendidas
 	Volumes            []VolumePorProduto  `json:"volumes"`          // Lista detalhada por produto
-	VolumesServicos    []VolumePorServico  `json:"volumes_servicos"`  // Novo: Lista detalhada por serviço
+	VolumesServicos    []VolumePorServico  `json:"volumes_servicos"`  // Lista detalhada por serviço
 	PorPagamento   map[string]float64  `json:"por_pagamento"`
 	PorStatus      map[string]int      `json:"por_status"`
 	Vendas         []venda.Venda       `json:"vendas"`
@@ -178,7 +179,10 @@ func (s *Service) ObterDadosVendas(inicio, fim time.Time) (*ResumoVenda, error) 
 		if v.Status == "concluida" {
 			// Separar produtos e serviços
 			var totalP, totalS float64
-			for _, it := range v.Itens { totalP += it.ValorUnitario * float64(it.Quantidade) }
+			for _, it := range v.Itens { 
+				totalP += it.ValorUnitario * float64(it.Quantidade)
+				resumo.QuantidadeItens += it.Quantidade
+			}
 			for _, sv := range v.Servicos { totalS += sv.ValorCobrado * float64(sv.Quantidade) }
 			
 			resumo.TotalProdutos += totalP

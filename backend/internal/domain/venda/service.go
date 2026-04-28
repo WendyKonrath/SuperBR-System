@@ -7,6 +7,7 @@ import (
 	"super-br/internal/domain/movimentacao"
 	"super-br/internal/domain/notificacao"
 	"super-br/internal/domain/produto"
+	"super-br/internal/domain/sucata"
 	"time"
 
 	"gorm.io/gorm"
@@ -33,6 +34,13 @@ type pagamentoInput struct {
 	Valor float64
 }
 
+// sucataAbatimentoInput representa um item de sucata entregue pelo cliente.
+type sucataAbatimentoInput struct {
+	ProdutoID *uint
+	Descricao string
+	Peso      float64
+}
+
 // Service contém a lógica de negócio do domínio de vendas.
 type Service struct {
 	repo         *Repository
@@ -41,6 +49,7 @@ type Service struct {
 	movRepo      *movimentacao.Repository
 	notifService *notificacao.Service
 	estoqueServ  *estoque.Service
+	sucataServ   *sucata.Service
 }
 
 // NewService cria o service injetando todos os repositórios necessários.
@@ -51,6 +60,7 @@ func NewService(
 	movRepo *movimentacao.Repository,
 	notifService *notificacao.Service,
 	estoqueServ *estoque.Service,
+	sucataServ *sucata.Service,
 ) *Service {
 	return &Service{
 		repo:         repo,
@@ -59,6 +69,7 @@ func NewService(
 		movRepo:      movRepo,
 		notifService: notifService,
 		estoqueServ:  estoqueServ,
+		sucataServ:   sucataServ,
 	}
 }
 
@@ -91,6 +102,7 @@ func (s *Service) CriarVenda(
 	itens []itemInput,
 	servicos []servicoInput,
 	pagamentos []pagamentoInput,
+	sucatasAbatimento []sucataAbatimentoInput,
 	usuarioID uint,
 	trocoDevolvido float64,
 ) (*Venda, error) {
@@ -179,6 +191,14 @@ func (s *Service) CriarVenda(
 		novaVenda.ValorTotal = valorTotal
 		if err := tx.Save(novaVenda).Error; err != nil { return err }
 
+		// 4.5. Processar sucatas de abatimento (entrada no estoque de sucata como pendente)
+		for _, sct := range sucatasAbatimento {
+			_, err := s.sucataServ.EntradaSucata(tx, sct.ProdutoID, sct.Descricao, sct.Peso, &novaVenda.ID, usuarioID, "aguardando_venda")
+			if err != nil {
+				return fmt.Errorf("erro ao registrar sucata de abatimento: %v", err)
+			}
+		}
+
 		// 5. Sincronizar saldos físicos
 		for pID := range produtosEnvolvidos {
 			if err := s.estoqueServ.SincronizarProduto(tx, pID); err != nil { return err }
@@ -199,6 +219,7 @@ func (s *Service) AtualizarVenda(
 	itens []itemInput,
 	servicos []servicoInput,
 	pagamentos []pagamentoInput,
+	sucatasAbatimento []sucataAbatimentoInput,
 	usuarioID uint,
 	trocoDevolvido float64,
 ) (*Venda, error) {
@@ -284,6 +305,16 @@ func (s *Service) AtualizarVenda(
 		v.Servicos = nil // Evita re-associação indevida no Save
 		tx.Save(&v)
 
+		// 5.5. Sincronizar Sucatas de Abatimento (Remover anteriores e adicionar novas)
+		// Nota: Para simplificar, deletamos as sucatas vinculadas a esta venda e recriamos.
+		tx.Exec("DELETE FROM estoque_sucatas WHERE venda_id = ?", vendaID)
+		for _, sct := range sucatasAbatimento {
+			_, err := s.sucataServ.EntradaSucata(tx, sct.ProdutoID, sct.Descricao, sct.Peso, &vendaID, usuarioID, "aguardando_venda")
+			if err != nil {
+				return fmt.Errorf("erro ao atualizar sucatas de abatimento: %v", err)
+			}
+		}
+
 		// 6. Sincronização Física Final
 		for pID := range produtosParaSincronizar {
 			s.estoqueServ.SincronizarProduto(tx, pID)
@@ -315,6 +346,10 @@ func (s *Service) ConfirmarVenda(vendaID, usuarioID uint) (*Venda, error) {
 		v.Status = StatusConcluida
 		tx.Save(&v)
 		for pid := range prodIDs { s.estoqueServ.SincronizarProduto(tx, pid) }
+
+		// Ativar sucatas de abatimento para 'disponivel'
+		tx.Exec("UPDATE estoque_sucatas SET estado = 'disponivel' WHERE venda_id = ? AND estado = 'aguardando_venda'", v.ID)
+
 		return s.notifService.NotificarVendaRealizada(tx, v.ID, v.NomeCliente, v.ValorTotal)
 	})
 	if err != nil { return nil, err }
@@ -341,6 +376,10 @@ func (s *Service) CancelarVenda(vendaID, usuarioID uint) (*Venda, error) {
 		v.Status = StatusCancelada
 		tx.Save(&v)
 		for pid := range prodIDs { s.estoqueServ.SincronizarProduto(tx, pid) }
+
+		// Limpar sucatas de abatimento pendentes
+		tx.Exec("DELETE FROM estoque_sucatas WHERE venda_id = ? AND estado = 'aguardando_venda'", v.ID)
+
 		return nil
 	})
 	if err != nil { return nil, err }
@@ -389,6 +428,10 @@ func (s *Service) DevolverVenda(vID, uID uint) (*Venda, error) {
 			}
 		}
 		v.Status = StatusReembolsado; tx.Save(&v)
+		
+		// 3. Atualizar status das sucatas vinculadas para 'reembolsada'
+		tx.Exec("UPDATE estoque_sucatas SET estado = 'reembolsada' WHERE venda_id = ?", vID)
+		
 		return nil
 	})
 	if err != nil { return nil, err }

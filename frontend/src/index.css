@@ -1303,7 +1303,15 @@ th {
 .summary-total-value {
     color: var(--secondary-color);
     font-weight: 700;
-}\n/* Comprovante Print CSS */\n@media print {\n  body * { visibility: hidden; }\n  .print-receipt-container, .print-receipt-container * { visibility: visible; }\n  .print-receipt-container { position: absolute; left: 0; top: 0; width: 100%; }\n  .modal-overlay, .sidebar, .topbar { display: none !important; }\n}\n
+}
+/* Comprovante Print CSS */
+@media print {
+  body * { visibility: hidden; }
+  .print-receipt-container, .print-receipt-container * { visibility: visible; }
+  .print-receipt-container { position: absolute; left: 0; top: 0; width: 100%; }
+  .modal-overlay, .sidebar, .topbar { display: none !important; }
+}
+
 /* Badge de Notificações na Sidebar */
 .nav-badge {
     background-color: #ef4444;

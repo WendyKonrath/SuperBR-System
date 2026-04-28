@@ -33,6 +33,7 @@ func (r *Repository) BuscarPorID(id uint) (*Venda, error) {
 		Preload("Itens.ItemEstoque.Produto").
 		Preload("Servicos.Servico").
 		Preload("Pagamentos").
+		Preload("Sucatas.Produto").
 		First(&v, id)
 	return &v, result.Error
 }
@@ -51,6 +52,7 @@ func (r *Repository) ListarPorPeriodo(inicio, fim time.Time) ([]Venda, error) {
 		Preload("Itens.ItemEstoque.Produto").
 		Preload("Servicos.Servico").
 		Preload("Pagamentos").
+		Preload("Sucatas.Produto").
 		Where("data BETWEEN ? AND ?", inicio, fim).
 		Order("data DESC").
 		Find(&vendas)
@@ -65,6 +67,7 @@ func (r *Repository) ListarPorStatus(status string) ([]Venda, error) {
 		Preload("Itens.ItemEstoque.Produto").
 		Preload("Servicos.Servico").
 		Preload("Pagamentos").
+		Preload("Sucatas.Produto").
 		Where("status = ?", status).
 		Order("data DESC").
 		Find(&vendas)
@@ -79,6 +82,7 @@ func (r *Repository) ListarTodas() ([]Venda, error) {
 		Preload("Itens.ItemEstoque.Produto").
 		Preload("Servicos.Servico").
 		Preload("Pagamentos").
+		Preload("Sucatas.Produto").
 		Order("data DESC").
 		Find(&vendas)
 	return vendas, result.Error

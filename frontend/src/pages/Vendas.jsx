@@ -40,21 +40,24 @@ function Vendas() {
   })
   const [itens, setItens] = useState([])
   const [servicosVenda, setServicosVenda] = useState([])
+  const [sucatasAbatimento, setSucatasAbatimento] = useState([])
+  const [globalPrecoSucata, setGlobalPrecoSucata] = useState(3.0)
+  const [showScrapModal, setShowScrapModal] = useState(false)
+  const [scrapFormData, setScrapFormData] = useState({
+    produtoId: '',
+    descricao: '',
+    peso: ''
+  })
   const { usuario } = useAuth()
 
-  // Comentado para evitar que o troco seja preenchido automaticamente, conforme pedido do usuário.
-  // useEffect(() => {
-  //   const total = itens.reduce((acc, it) => acc + (it.quantidade * it.valor_unitario), 0);
-  //   const pago = Object.entries(formData)
-  //     .filter(([k]) => ['dinheiro', 'pix', 'credito', 'debito', 'sucata'].includes(k))
-  //     .reduce((acc, [_, v]) => acc + parseCurrency(v), 0);
-  //   
-  //   const trocoSugestivo = Math.max(0, pago - total);
-  //   setFormData(prev => ({
-  //     ...prev,
-  //     troco_devolvido: formatCurrency(trocoSugestivo).replace('R$', '').trim()
-  //   }));
-  // }, [itens]);
+  // Atualizar valor total de abatimento quando a lista de sucatas mudar
+  useEffect(() => {
+    const totalAbatimento = sucatasAbatimento.reduce((acc, sct) => acc + (sct.peso * globalPrecoSucata), 0);
+    setFormData(prev => ({
+      ...prev,
+      sucata: formatCurrency(totalAbatimento).replace('R$', '').trim()
+    }));
+  }, [sucatasAbatimento, globalPrecoSucata]);
   const [submitting, setSubmitting] = useState(false)
   const [editingObs, setEditingObs] = useState(false)
   const [tempObs, setTempObs] = useState('')
@@ -73,18 +76,22 @@ function Vendas() {
     setLoading(true)
     setError(null)
     try {
-      const [vendasData, produtosData, estoquesData, itensEstoqueData, servicosData] = await Promise.all([
+      const [vendasData, produtosData, estoquesData, itensEstoqueData, servicosData, configData] = await Promise.all([
         vendaService.listar(),
         produtoService.listar(),
         estoqueService.listarEstoque(),
         estoqueService.listarItens(),
-        servicoService.listar()
+        servicoService.listar(),
+        import('../services/configuracao').then(m => m.configuracaoService.obterConfiguracoes())
       ])
       setVendas(Array.isArray(vendasData) ? vendasData : [])
       setProdutos(Array.isArray(produtosData) ? produtosData : [])
       setEstoques(Array.isArray(estoquesData) ? estoquesData : [])
       setItensEstoque(Array.isArray(itensEstoqueData) ? itensEstoqueData : [])
       setServicosDisponiveis(Array.isArray(servicosData?.data) ? servicosData.data : Array.isArray(servicosData) ? servicosData : [])
+      if (configData && configData.preco_sucata_kg) {
+        setGlobalPrecoSucata(configData.preco_sucata_kg)
+      }
     } catch (err) {
       console.error('Erro ao carregar dados:', err)
       setError('Erro ao carregar dados')
@@ -259,11 +266,18 @@ function Vendas() {
       subtitle: 'No período selecionado'
     },
     { 
+      icon: 'fa-wallet', 
+      bgClass: 'bg-orange-light', 
+      title: 'Faturamento Líquido', 
+      value: formatCurrency(filteredVendas.filter(v => v.status === 'concluida').reduce((acc, v) => acc + v.valor_total, 0)),
+      subtitle: 'Soma dos valores totais'
+    },
+    { 
       icon: 'fa-money-bill-trend-up', 
       bgClass: 'bg-green-light', 
       title: 'Faturamento Bruto', 
-      value: formatCurrency(filteredVendas.filter(v => v.status === 'concluida').reduce((acc, v) => acc + v.valor_total, 0)),
-      subtitle: 'Vendas concluídas'
+      value: formatCurrency(filteredVendas.filter(v => v.status === 'concluida').reduce((acc, v) => acc + (v.valor_pago || 0), 0)),
+      subtitle: 'Soma dos valores pagos'
     },
     { 
       icon: 'fa-clock', 
@@ -278,10 +292,10 @@ function Vendas() {
       title: 'Ticket Médio', 
       value: formatCurrency(
         filteredVendas.filter(v => v.status === 'concluida').length > 0 
-          ? filteredVendas.filter(v => v.status === 'concluida').reduce((acc, v) => acc + v.valor_total, 0) / filteredVendas.filter(v => v.status === 'concluida').length 
+          ? filteredVendas.filter(v => v.status === 'concluida').reduce((acc, v) => acc + (v.valor_pago || 0), 0) / filteredVendas.filter(v => v.status === 'concluida').length 
           : 0
       ),
-      subtitle: 'Valor médio por venda'
+      subtitle: 'Média por valor pago'
     },
   ]
 
@@ -314,6 +328,19 @@ function Vendas() {
 
   const handleRemoveServico = (id) => {
     setServicosVenda(servicosVenda.filter(s => s.id !== id))
+  }
+
+  const handleAddScrapItem = (scrapItem) => {
+    setSucatasAbatimento([...sucatasAbatimento, {
+      ...scrapItem,
+      id: Date.now(),
+      valorTotal: scrapItem.peso * globalPrecoSucata
+    }]);
+    setShowScrapModal(false);
+  }
+
+  const handleRemoveScrapItem = (id) => {
+    setSucatasAbatimento(sucatasAbatimento.filter(s => s.id !== id));
   }
 
   const handlePriceTableChange = (novoTipo) => {
@@ -352,6 +379,7 @@ function Vendas() {
     setCurrentVenda(null)
     setItens([])
     setServicosVenda([])
+    setSucatasAbatimento([])
     setFormData({
       cliente: '',
       documento: '',
@@ -391,6 +419,15 @@ function Vendas() {
         tipoPrecoPredominante = 'atacado';
       }
     }
+
+    setSucatasAbatimento(vendaDetalhes.sucatas ? vendaDetalhes.sucatas.map(s => ({
+      id: s.id,
+      produtoId: s.produto_id ? s.produto_id.toString() : null,
+      descricao: s.descricao || '',
+      peso: s.peso,
+      valorTotal: s.valor_total,
+      nome: s.produto?.nome || s.descricao || 'Item Manual'
+    })) : [])
 
     setFormData({
       cliente: vendaDetalhes.nome_cliente || '',
@@ -578,7 +615,12 @@ function Vendas() {
           .map(([k, v]) => ({
             tipo: k,
             valor: parseCurrency(v)
-          }))
+          })),
+        sucatas_abatimento: sucatasAbatimento.map(s => ({
+          produto_id: s.produtoId ? parseInt(s.produtoId) : null,
+          descricao: s.descricao,
+          peso: parseFloat(s.peso)
+        }))
       };
 
       console.log("ENVIANDO PAYLOAD:", payload)
@@ -987,12 +1029,30 @@ function Vendas() {
                         <input type="text" value={formatCurrency(currentVenda.pagamentos?.find(p => p.tipo === 'debito')?.valor || 0).replace('R$', '').trim()} readOnly style={{ width: '100%', padding: '10px 10px 10px 35px', border: '1px solid #cbd5e1', borderRadius: '6px', background: '#f8fafc', fontSize: '0.95rem' }} />
                       </div>
                     </div>
-                    <div className="form-group" style={{ margin: 0, gridColumn: 'span 4' }}>
-                      <label style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: '500', marginBottom: '6px', display: 'block' }}>Abatimento Sucata</label>
-                      <div style={{ position: 'relative' }}>
-                        <span style={{ position: 'absolute', left: '10px', top: '10px', color: '#94a3b8', fontSize: '0.9rem', fontWeight: '500' }}>R$</span>
-                        <input type="text" value={formatCurrency(currentVenda.pagamentos?.find(p => p.tipo === 'sucata')?.valor || 0).replace('R$', '').trim()} readOnly style={{ width: '100%', padding: '10px 10px 10px 35px', border: '1px solid #cbd5e1', borderRadius: '6px', background: '#f8fafc', fontSize: '0.95rem' }} />
-                      </div>
+                    <div className="form-group" style={{ margin: 0, gridColumn: 'span 4', background: '#f8fafc', padding: '15px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                      <label style={{ fontSize: '0.9rem', color: '#1e293b', fontWeight: 'bold', marginBottom: '10px', display: 'block' }}>Sucatas Recebidas no Abatimento</label>
+                      {currentVenda.sucatas && currentVenda.sucatas.length > 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          {currentVenda.sucatas.map((sct) => (
+                            <div key={sct.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}>
+                              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                <span style={{ fontWeight: '600', color: '#334155' }}>{sct.produto?.nome || sct.descricao || 'Sucata'}</span>
+                                <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Peso: {sct.peso}kg | Preço/kg: {formatCurrency(sct.preco_por_kg)}</span>
+                              </div>
+                              <span style={{ fontWeight: 'bold', color: '#0f172a' }}>{formatCurrency(sct.valor_total)}</span>
+                            </div>
+                          ))}
+                          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '5px', padding: '5px 10px', borderTop: '1px dashed #cbd5e1' }}>
+                            <span style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#1e293b' }}>
+                              Total Abatimento: {formatCurrency(currentVenda.pagamentos?.find(p => p.tipo === 'sucata')?.valor || 0)}
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div style={{ textAlign: 'center', padding: '10px', color: '#94a3b8', fontSize: '0.85rem', fontStyle: 'italic', border: '1px dashed #cbd5e1', borderRadius: '6px' }}>
+                          Nenhuma sucata registrada nesta venda.
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -1181,10 +1241,45 @@ function Vendas() {
                       <div style={{ position: 'relative' }}><span style={{ position: 'absolute', left: '10px', top: '10px', color: '#94a3b8', fontSize: '0.9rem', fontWeight: '500' }}>R$</span>
                         <input type="text" placeholder="0,00" value={formData.debito} onChange={(e) => handleInputChange('debito', e.target.value)} style={{ width: '100%', padding: '10px 10px 10px 35px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.95rem' }} /></div>
                     </div>
-                    <div className="form-group" style={{ margin: 0, gridColumn: 'span 4' }}>
-                      <label style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: '500', marginBottom: '6px', display: 'block' }}>Abatimento Sucata</label>
-                      <div style={{ position: 'relative' }}><span style={{ position: 'absolute', left: '10px', top: '10px', color: '#94a3b8', fontSize: '0.9rem', fontWeight: '500' }}>R$</span>
-                        <input type="text" placeholder="0,00" value={formData.sucata} onChange={(e) => handleInputChange('sucata', e.target.value)} style={{ width: '100%', padding: '10px 10px 10px 35px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.95rem', background: '#f8fafc' }} /></div>
+                    <div className="form-group" style={{ margin: 0, gridColumn: 'span 4', background: '#f8fafc', padding: '15px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                        <label style={{ fontSize: '0.9rem', color: '#1e293b', fontWeight: 'bold' }}>Abatimento Sucata (Itens Recebidos)</label>
+                        <button 
+                          type="button" 
+                          onClick={() => setShowScrapModal(true)}
+                          style={{ padding: '6px 12px', background: '#334155', color: 'white', border: 'none', borderRadius: '4px', fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}
+                        >
+                          <FaPlus size={10} /> Adicionar Sucata
+                        </button>
+                      </div>
+                      
+                      {sucatasAbatimento.length > 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          {sucatasAbatimento.map((sct) => (
+                            <div key={sct.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}>
+                              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                <span style={{ fontWeight: '600', color: '#334155' }}>{sct.nome || sct.descricao || 'Sucata'}</span>
+                                <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Peso: {sct.peso}kg | Preço/kg: {formatCurrency(globalPrecoSucata)}</span>
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                <span style={{ fontWeight: 'bold', color: '#0f172a' }}>{formatCurrency(sct.valorTotal)}</span>
+                                <button type="button" onClick={() => handleRemoveScrapItem(sct.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px' }}>
+                                  <FaTrash size={14} />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '5px', padding: '5px 10px', borderTop: '1px dashed #cbd5e1' }}>
+                            <span style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#1e293b' }}>
+                              Total Abatimento: {formatCurrency(parseCurrency(formData.sucata))}
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div style={{ textAlign: 'center', padding: '10px', color: '#94a3b8', fontSize: '0.85rem', fontStyle: 'italic', border: '1px dashed #cbd5e1', borderRadius: '6px' }}>
+                          Nenhuma sucata adicionada como abatimento.
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -1361,6 +1456,97 @@ function Vendas() {
               </button>
               <button type="button" className="btn btn-success" onClick={handleConfirmProduct}>
                 Adicionar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showScrapModal && (
+        <div className="modal-overlay" style={{ display: 'flex' }} onClick={() => setShowScrapModal(false)}>
+          <div className="modal-card" style={{ width: '500px' }} onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ marginBottom: '20px', borderBottom: '2px solid #f1f5f9', paddingBottom: '10px' }}>Adicionar Sucata de Abatimento</h3>
+            
+            <div className="form-group" style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px', fontSize: '0.9rem', fontWeight: '600' }}>Bateria / Modelo (Opcional)</label>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <select 
+                  style={{ flex: 1, padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                  value={scrapFormData.produtoId}
+                  onChange={(e) => setScrapFormData({ ...scrapFormData, produtoId: e.target.value, descricao: e.target.value ? '' : scrapFormData.descricao })}
+                >
+                  <option value="">-- Selecione ou use entrada manual --</option>
+                  {produtos.map(p => (
+                    <option key={p.id} value={p.id}>[{p.categoria}] {p.nome}</option>
+                  ))}
+                </select>
+                {scrapFormData.produtoId && (
+                  <button type="button" onClick={() => setScrapFormData({ ...scrapFormData, produtoId: '' })} style={{ padding: '0 10px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '6px' }}>
+                    <FaTrash size={12} color="#64748b" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {!scrapFormData.produtoId && (
+              <div className="form-group" style={{ marginBottom: '15px' }}>
+                <label style={{ display: 'block', marginBottom: '5px', fontSize: '0.9rem', fontWeight: '600' }}>Descrição Manual *</label>
+                <input 
+                  type="text" 
+                  placeholder="Ex: Bateria 60Ah caminhão..."
+                  style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                  value={scrapFormData.descricao}
+                  onChange={(e) => setScrapFormData({ ...scrapFormData, descricao: e.target.value })}
+                  required
+                />
+              </div>
+            )}
+
+            <div className="form-group" style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px', fontSize: '0.9rem', fontWeight: '600' }}>Peso (kg) *</label>
+              <div style={{ position: 'relative' }}>
+                <input 
+                  type="number" 
+                  step="0.1"
+                  placeholder="0.0"
+                  style={{ width: '100%', padding: '10px 10px 10px 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                  value={scrapFormData.peso}
+                  onChange={(e) => setScrapFormData({ ...scrapFormData, peso: e.target.value })}
+                  required
+                />
+                <span style={{ position: 'absolute', right: '10px', top: '10px', color: '#94a3b8' }}>kg</span>
+              </div>
+            </div>
+
+            <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #e2e8f0' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: '#475569' }}>
+                <span>Preço por KG:</span>
+                <span>{formatCurrency(globalPrecoSucata)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px', fontWeight: 'bold', fontSize: '1.1rem', color: '#1e293b' }}>
+                <span>Total Estimado:</span>
+                <span>{formatCurrency((parseFloat(scrapFormData.peso) || 0) * globalPrecoSucata)}</span>
+              </div>
+            </div>
+
+            <div className="modal-actions" style={{ gap: '10px' }}>
+              <button type="button" className="btn btn-cancel" onClick={() => setShowScrapModal(false)}>Cancelar</button>
+              <button 
+                type="button" 
+                className="btn btn-primary" 
+                disabled={(!scrapFormData.produtoId && !scrapFormData.descricao) || !scrapFormData.peso}
+                onClick={() => {
+                  const prod = produtos.find(p => p.id === parseInt(scrapFormData.produtoId));
+                  handleAddScrapItem({
+                    produtoId: scrapFormData.produtoId,
+                    descricao: scrapFormData.descricao,
+                    peso: parseFloat(scrapFormData.peso),
+                    nome: prod ? prod.nome : scrapFormData.descricao
+                  });
+                  setScrapFormData({ produtoId: '', descricao: '', peso: '' });
+                }}
+              >
+                Adicionar ao Abatimento
               </button>
             </div>
           </div>

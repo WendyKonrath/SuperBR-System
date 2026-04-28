@@ -65,6 +65,11 @@ func Connect(cfg *config.Config) *gorm.DB {
 		log.Fatal("Erro ao executar AutoMigrate: ", err)
 	}
 
+	// Garante que produto_id aceite NULL (AutoMigrate às vezes não remove a constraint NOT NULL)
+	db.Exec("ALTER TABLE estoque_sucatas ALTER COLUMN produto_id DROP NOT NULL")
+	// Garante que a coluna descricao exista (AutoMigrate às vezes falha em adicionar colunas em tabelas existentes)
+	db.Exec("ALTER TABLE estoque_sucatas ADD COLUMN IF NOT EXISTS descricao VARCHAR(200)")
+
 	fmt.Println("Banco de dados conectado e tabelas sincronizadas.")
 	return db
 }

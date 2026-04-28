@@ -11,19 +11,25 @@ export const sucataService = {
 
   async entradaSucata(data) {
     return await api.post('/sucata/entrada', {
-      produto_id: data.produtoId,
+      produto_id: data.produtoId || null,
+      descricao: data.descricao || "",
       peso: data.peso,
-      venda_id: data.vendaId
+      venda_id: data.vendaId || null
     });
   },
 
   async editarLote(id, data) {
     return await api.put(`/sucata/lotes/${id}`, {
-      produto_id: data.produtoId,
+      produto_id: data.produtoId || null,
+      descricao: data.descricao || "",
       peso: data.peso,
-      venda_id: data.vendaId,
+      venda_id: data.vendaId || null,
       estado: data.estado
     });
+  },
+
+  async deletarLote(id) {
+    return await api.delete(`/sucata/lotes/${id}`);
   }
 };
 
